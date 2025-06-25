@@ -3,6 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+  --glass-card-bg: rgba(255, 255, 255, 0.5);
+  --glass-card-border: rgba(255, 255, 255, 0.1);
 }
 
 @theme inline {
@@ -16,6 +21,11 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --glass-bg: rgba(15, 15, 15, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: rgba(0, 0, 0, 0.3);
+    --glass-card-bg: rgba(25, 25, 25, 0.65);
+    --glass-card-border: rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -26,12 +36,133 @@ body {
   line-height: 1.6;
 }
 
-/* Simple fade-in animation */
+/* Animation keyframes */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes floatAnimation {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Animation classes */
 main {
   animation: fadeIn 0.8s ease-in;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.25s ease-out forwards;
+}
+
+.animate-checkmark {
+  animation: checkmark 0.3s ease-out forwards;
+}
+
+.animate-float {
+  animation: floatAnimation 5s ease-in-out infinite;
+}
+
+/* Gradient text */
+.gradient-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(90deg, #3b82f6, #ec4899, #3b82f6);
+  background-size: 200% auto;
+  animation: gradient 8s linear infinite;
+}
+
+/* Glass morphism */
+.glass-effect {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dark .glass-effect {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Enhanced glass morphism for popup */
+.glass-morphism {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px var(--glass-shadow);
+}
+
+/* Glass card for inner elements */
+.glass-card {
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: 0 4px 12px var(--glass-shadow);
+}
+
+/* Dark mode specific enhancements */
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  
+  /* Subtle glow for interactive elements in dark mode */
+  .interactive-glow:hover {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Improved contrast for text on glass backgrounds */
+  .glass-card h4, .glass-morphism h3 {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
 }
