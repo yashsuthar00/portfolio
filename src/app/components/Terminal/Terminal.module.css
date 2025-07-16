@@ -1,0 +1,62 @@
+.terminal {
+  background-color: #1a1a1a;
+  color: #00ff00;
+  font-size: 1rem;
+  padding: 10px;
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.commandLine {
+  display: flex;
+  align-items: center;
+}
+
+.prompt {
+  color: #4af626;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.commandLine > span:last-child {
+  color: #ffffff;
+}
+
+.output {
+  padding-left: 15px;
+  color: #e0e0e0; /* Default output color */
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.input {
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: inherit;
+  flex-grow: 1;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.input {
+  caret-color: #00ff00;
+}
+
+.output a {
+  color: #87ceeb; /* Sky blue for links */
+  text-decoration: none;
+}
+
+.output a:hover {
+  text-decoration: underline;
+}
+
+.output strong {
+    color: #ffffff;
+    font-weight: 700;
+}

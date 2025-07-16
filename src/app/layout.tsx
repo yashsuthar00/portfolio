@@ -1,16 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fira_Code } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Configure the font
+const firaCode = Fira_Code({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -44,36 +40,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  // Suppress specific hydration warnings in development
-  if (process.env.NODE_ENV === 'development') {
-    // This runs only on the client side
-    if (typeof window !== 'undefined') {
-      const originalError = console.error;
-      console.error = (...args) => {
-        if (
-          typeof args[0] === 'string' &&
-          args[0].includes('Hydration failed because the initial UI does not match what was rendered on the server')
-        ) {
-          // Ignore this specific hydration error
-          return;
-        }
-        originalError(...args);
-      };
-    }
-  }
-
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        suppressHydrationWarning
-      >
-        {children}
+    <html lang="en">
+      {/* Apply the font class to the body */}
+      <body className={firaCode.className}>{children}</body>
         <Analytics />
-      </body>
     </html>
   );
 }
