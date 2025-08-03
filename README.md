@@ -98,11 +98,14 @@ npm run dev          # Start development server with Turbopack
 npm run build        # Create production build
 npm run start        # Start production server
 
-# Code Quality
+# Code Quality & Development Scripts
 npm run lint         # Run ESLint with strict rules
+npm run lint:fix     # Auto-fix ESLint issues
 npm run type-check   # TypeScript type checking
 npm run format       # Format code with Prettier
 npm run format:check # Check code formatting
+npm run ci          # Run all quality checks + build
+npm run prepare     # Format and fix before commit
 
 # Testing
 npm test             # Run tests (placeholder)
@@ -238,12 +241,55 @@ export const commandHandlers = {
 
 ## 📈 **CI/CD Pipeline**
 
-Automated GitHub Actions workflow:
-- **Type Checking**: Strict TypeScript validation
-- **Linting**: ESLint with zero warnings policy
+### GitHub Actions Workflows
+
+#### **Main CI Workflow** (`.github/workflows/ci.yml`)
+- **Multi-Node Testing**: Tests on Node.js 18.x and 20.x
+- **Type Checking**: Strict TypeScript validation with `tsc --noEmit --strict`
+- **Linting**: ESLint with zero warnings policy (`--max-warnings=0`)
 - **Code Formatting**: Prettier consistency checks
-- **Build Testing**: Ensures production builds succeed
+- **Testing**: Automated test execution
+- **Build Verification**: Ensures production builds succeed
 - **Security Auditing**: npm audit for vulnerabilities
+- **Build Artifacts**: Uploads build files for inspection
+
+#### **Auto-Format Workflow** (`.github/workflows/format.yml`)
+- **Automatic Code Formatting**: Detects and fixes formatting issues
+- **Auto-Commit**: Commits formatting changes back to the branch
+- **Pull Request Support**: Works on both pushes and PRs
+
+### Quality Standards
+- **Zero ESLint Warnings**: Strict code quality enforcement
+- **100% TypeScript Coverage**: All code is strictly typed
+- **Prettier Formatting**: Consistent code style across the project
+- **Pre-commit Hooks**: Local quality checks before commits
+
+### Development Workflow
+```bash
+# Local development with quality checks
+npm run ci          # Run full CI pipeline locally
+npm run prepare     # Auto-format and fix issues
+npm run lint:fix    # Fix ESLint issues automatically
+```
+
+## 🔧 **Code Quality Tools**
+
+### **TypeScript Configuration**
+- Strict mode enabled with comprehensive type checking
+- Zero implicit any types allowed
+- Strict null checks and unused variable detection
+
+### **ESLint Configuration**
+- Extends Next.js recommended rules
+- TypeScript-specific linting rules
+- Custom rules for consistent code style
+- Integration with Prettier for formatting
+
+### **Prettier Configuration**
+- Tailwind CSS class sorting
+- Consistent indentation and formatting
+- Automatic trailing commas and semicolons
+- Cross-platform line ending normalization
 
 ## 🤝 **Contributing**
 
