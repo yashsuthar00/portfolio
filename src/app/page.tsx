@@ -1,40 +1,40 @@
 "use client";
 
-import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
-import Loader from '@/components/Loader';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import useResponsive from '@/hooks/useResponsive';
+import React, { useState } from "react";
+import dynamic from "next/dynamic";
+import Loader from "@/components/Loader";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import useResponsive from "@/hooks/useResponsive";
 
 // Dynamic imports for better performance
 const TerminalComponent = dynamic(
-  () => import('@/components/terminal/TerminalComponent'),
-  { 
+  () => import("@/components/terminal/TerminalComponent"),
+  {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-black rounded-lg border border-green-400/20 flex items-center justify-center">
+      <div className="flex h-full w-full items-center justify-center rounded-lg border border-green-400/20 bg-black">
         <div className="text-green-400">Loading terminal...</div>
       </div>
-    )
+    ),
   }
 );
 
-const ThreeDCard = dynamic(
-  () => import('@/components/ThreeDCard'),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full bg-gray-900 rounded-lg border border-green-400/20 flex items-center justify-center">
-        <div className="text-green-400">Loading 3D card...</div>
-      </div>
-    )
-  }
-);
+const ThreeDCard = dynamic(() => import("@/components/ThreeDCard"), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="flex h-full w-full items-center justify-center rounded-lg border border-blue-400/20"
+      style={{ backgroundColor: "var(--card-panel)" }}
+    >
+      <div className="text-blue-400">Loading 3D card...</div>
+    </div>
+  ),
+});
 
 export default function Home(): React.ReactElement {
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { responsive, setActivePanel, handleSwipe } = useResponsive();
+  const { responsive, handleSwipe } = useResponsive();
 
   const handleLoaderComplete = (): void => {
     setIsLoading(false);
@@ -44,7 +44,7 @@ export default function Home(): React.ReactElement {
   const handleTouchStart = (e: React.TouchEvent): void => {
     const touch = e.touches[0];
     if (!touch) return;
-    
+
     const startY = touch.clientY;
     const startX = touch.clientX;
 
@@ -58,16 +58,16 @@ export default function Home(): React.ReactElement {
 
       if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > threshold) {
         if (deltaY > 0) {
-          handleSwipe('down');
+          handleSwipe("down");
         } else {
-          handleSwipe('up');
+          handleSwipe("up");
         }
       }
 
-      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener("touchend", handleTouchEnd);
     };
 
-    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener("touchend", handleTouchEnd);
   };
 
   if (isLoading) {
@@ -75,29 +75,39 @@ export default function Home(): React.ReactElement {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div
+      className="flex min-h-screen flex-col text-white"
+      style={{ backgroundColor: "var(--background)" }}
+    >
       {/* Navbar */}
       <Navbar />
 
-      {/* Main Content */}
-      <main 
-        className="flex-1 relative"
+      {/* Main Content - fills space between navbar and footer */}
+      <main
+        className="relative flex-1"
         onTouchStart={handleTouchStart}
+        style={{ height: "calc(100vh - 120px)" }} // Approximate navbar + footer height
       >
         {/* Desktop Layout */}
-        <div className="hidden md:flex h-full min-h-[600px]">
+        <div className="hidden h-full md:flex">
           {/* Left Panel - 3D Card (40%) */}
-          <div className="w-2/5 p-6 flex items-center justify-center">
-            <div className="w-full max-w-md">
+          <div
+            className="flex w-2/5 items-center justify-center p-6"
+            style={{ backgroundColor: "var(--card-panel)" }}
+          >
+            <div className="h-full w-full">
               <ThreeDCard interactive={true} />
             </div>
           </div>
 
           {/* Divider */}
-          <div className="w-px bg-gradient-to-b from-transparent via-green-400/50 to-transparent my-8 hover:via-green-400/80 transition-colors duration-300" />
+          <div className="my-0 w-px bg-gradient-to-b from-transparent via-blue-400/50 to-transparent transition-colors duration-300 hover:via-blue-400/80" />
 
           {/* Right Panel - Terminal (60%) */}
-          <div className="w-3/5 p-6">
+          <div
+            className="w-3/5 p-6"
+            style={{ backgroundColor: "var(--terminal-bg)" }}
+          >
             <div className="h-full">
               <TerminalComponent />
             </div>
@@ -105,58 +115,35 @@ export default function Home(): React.ReactElement {
         </div>
 
         {/* Mobile Layout */}
-        <div className="md:hidden h-screen">
-          {/* Mobile Panel Indicator */}
-          <div className="flex justify-center py-2 bg-black/50 backdrop-blur-sm border-b border-green-400/20">
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setActivePanel('terminal')}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-200 ${
-                  responsive.activePanel === 'terminal'
-                    ? 'bg-green-400 text-black'
-                    : 'text-green-400 border border-green-400/30'
-                }`}
-              >
-                Terminal
-              </button>
-              <button
-                onClick={() => setActivePanel('card')}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-200 ${
-                  responsive.activePanel === 'card'
-                    ? 'bg-green-400 text-black'
-                    : 'text-green-400 border border-green-400/30'
-                }`}
-              >
-                3D Card
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Swipe Instruction */}
-          <div className="text-center py-2 text-xs text-green-400/60">
-            Swipe up/down to switch panels
-          </div>
-
-          {/* Mobile Content */}
-          <div className="h-full px-4 pb-4">
-            <div 
-              className={`transition-transform duration-300 ease-in-out h-full ${
-                responsive.activePanel === 'terminal' ? 'translate-y-0' : '-translate-y-full'
+        <div className="h-full md:hidden">
+          {/* Mobile Content - full screen transitions only */}
+          <div className="h-full">
+            <div
+              className={`h-full transition-transform duration-300 ease-in-out ${
+                responsive.activePanel === "terminal"
+                  ? "translate-y-0"
+                  : "-translate-y-full"
               }`}
+              style={{ backgroundColor: "var(--terminal-bg)" }}
             >
-              {responsive.activePanel === 'terminal' && (
-                <TerminalComponent />
+              {responsive.activePanel === "terminal" && (
+                <div className="h-full p-4">
+                  <TerminalComponent />
+                </div>
               )}
             </div>
 
-            <div 
-              className={`transition-transform duration-300 ease-in-out h-full ${
-                responsive.activePanel === 'card' ? 'translate-y-0' : 'translate-y-full'
+            <div
+              className={`absolute inset-0 h-full transition-transform duration-300 ease-in-out ${
+                responsive.activePanel === "card"
+                  ? "translate-y-0"
+                  : "translate-y-full"
               }`}
+              style={{ backgroundColor: "var(--card-panel)" }}
             >
-              {responsive.activePanel === 'card' && (
-                <div className="h-full flex items-center justify-center">
-                  <div className="w-full max-w-sm">
+              {responsive.activePanel === "card" && (
+                <div className="flex h-full items-center justify-center p-4">
+                  <div className="h-full w-full">
                     <ThreeDCard interactive={true} />
                   </div>
                 </div>
@@ -166,25 +153,31 @@ export default function Home(): React.ReactElement {
         </div>
 
         {/* Background Effects */}
-        <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="pointer-events-none fixed inset-0 -z-10">
           {/* Gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black opacity-50" />
-          
+          <div
+            className="absolute inset-0 opacity-50"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--background) 0%, var(--terminal-bg) 50%, var(--background) 100%)",
+            }}
+          />
+
           {/* Animated grid */}
-          <div 
+          <div
             className="absolute inset-0 opacity-10"
             style={{
               backgroundImage: `
-                linear-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 0, 0.1) 1px, transparent 1px)
+                linear-gradient(rgba(33, 150, 243, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(33, 150, 243, 0.1) 1px, transparent 1px)
               `,
-              backgroundSize: '50px 50px'
+              backgroundSize: "50px 50px",
             }}
           />
-          
+
           {/* Glowing orbs */}
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-green-400/5 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-green-400/3 rounded-full blur-3xl animate-pulse delay-1000" />
+          <div className="absolute top-1/4 left-1/4 h-64 w-64 animate-pulse rounded-full bg-blue-400/5 blur-3xl" />
+          <div className="absolute right-1/4 bottom-1/4 h-96 w-96 animate-pulse rounded-full bg-blue-400/3 blur-3xl delay-1000" />
         </div>
       </main>
 

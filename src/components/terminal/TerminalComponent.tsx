@@ -1,38 +1,55 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import '@xterm/xterm/css/xterm.css';
-import useTerminal from '@/hooks/useTerminal';
-import dynamic from 'next/dynamic';
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
+import "@xterm/xterm/css/xterm.css";
+import useTerminal from "@/hooks/useTerminal";
+import { audioService } from "@/services/AudioService";
+import dynamic from "next/dynamic";
 
-const SnakeGame = dynamic(() => import('@/components/SnakeGame'), { ssr: false });
+const SnakeGame = dynamic(() => import("@/components/SnakeGame"), {
+  ssr: false,
+});
+
+const MatrixRain = dynamic(() => import("@/components/MatrixRain"), {
+  ssr: false,
+});
 
 interface TerminalComponentProps {
   className?: string;
 }
 
-const TerminalComponent: React.FC<TerminalComponentProps> = ({ className = "" }) => {
+const TerminalComponent: React.FC<TerminalComponentProps> = ({
+  className = "",
+}) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const [currentInput, setCurrentInput] = useState<string>('');
+  const [currentInput, setCurrentInput] = useState<string>("");
   const [showSnakeGame, setShowSnakeGame] = useState<boolean>(false);
+  const [showMatrixRain, setShowMatrixRain] = useState<boolean>(false);
   const { session, executeCommand } = useTerminal();
 
-  const writePrompt = useCallback((terminal: Terminal): void => {
-    const prompt = `${session.user}@${session.hostname}:${session.currentDirectory}$ `;
-    terminal.write(prompt);
-  }, [session.user, session.hostname, session.currentDirectory]);
+  const writePrompt = useCallback(
+    (terminal: Terminal): void => {
+      const prompt = `${session.user}@${session.hostname}:${session.currentDirectory}$ `;
+      terminal.write(prompt);
+    },
+    [session.user, session.hostname, session.currentDirectory]
+  );
 
   useEffect(() => {
     if (!terminalRef.current || isInitialized) return;
 
     const timer = setTimeout(() => {
       const container = terminalRef.current;
-      if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
+      if (
+        !container ||
+        container.offsetWidth === 0 ||
+        container.offsetHeight === 0
+      ) {
         return; // Wait for container to have proper dimensions
       }
 
@@ -40,37 +57,37 @@ const TerminalComponent: React.FC<TerminalComponentProps> = ({ className = "" })
         // Create terminal instance
         const terminal = new Terminal({
           theme: {
-            background: '#000000',
-            foreground: '#00ff00',
-            cursor: '#00ff00',
-            cursorAccent: '#000000',
-            selectionBackground: '#44aa44',
-            black: '#000000',
-            red: '#ff5555',
-            green: '#00ff00',
-            yellow: '#ffff55',
-            blue: '#5555ff',
-            magenta: '#ff55ff',
-            cyan: '#55ffff',
-            white: '#bbbbbb',
-            brightBlack: '#555555',
-            brightRed: '#ff5555',
-            brightGreen: '#55ff55',
-            brightYellow: '#ffff55',
-            brightBlue: '#5555ff',
-            brightMagenta: '#ff55ff',
-            brightCyan: '#55ffff',
-            brightWhite: '#ffffff'
+            background: "#000000",
+            foreground: "#00ff00",
+            cursor: "#00ff00",
+            cursorAccent: "#000000",
+            selectionBackground: "#44aa44",
+            black: "#000000",
+            red: "#ff5555",
+            green: "#00ff00",
+            yellow: "#ffff55",
+            blue: "#5555ff",
+            magenta: "#ff55ff",
+            cyan: "#55ffff",
+            white: "#bbbbbb",
+            brightBlack: "#555555",
+            brightRed: "#ff5555",
+            brightGreen: "#55ff55",
+            brightYellow: "#ffff55",
+            brightBlue: "#5555ff",
+            brightMagenta: "#ff55ff",
+            brightCyan: "#55ffff",
+            brightWhite: "#ffffff",
           },
           fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
           fontSize: 14,
-          fontWeight: 'normal',
+          fontWeight: "normal",
           lineHeight: 1.2,
           cursorBlink: true,
-          cursorStyle: 'block',
+          cursorStyle: "block",
           scrollback: 1000,
           tabStopWidth: 4,
-          allowProposedApi: true
+          allowProposedApi: true,
         });
 
         // Create and load fit addon
@@ -79,7 +96,7 @@ const TerminalComponent: React.FC<TerminalComponentProps> = ({ className = "" })
 
         // Open terminal
         terminal.open(container);
-        
+
         // Store references
         xtermRef.current = terminal;
         fitAddonRef.current = fitAddon;
@@ -87,16 +104,33 @@ const TerminalComponent: React.FC<TerminalComponentProps> = ({ className = "" })
         // Fit the terminal
         setTimeout(() => {
           try {
-            if (fitAddon && terminal && container.offsetWidth > 0 && container.offsetHeight > 0) {
+            if (
+              fitAddon &&
+              terminal &&
+              container.offsetWidth > 0 &&
+              container.offsetHeight > 0
+            ) {
               fitAddon.fit();
-              
+
               // Hide scrollbar after terminal is rendered
-              const viewport = container.querySelector('.xterm-viewport') as HTMLElement;
+              const viewport = container.querySelector(
+                ".xterm-viewport"
+              ) as HTMLElement;
               if (viewport) {
-                viewport.style.scrollbarWidth = 'none';
-                (viewport.style as unknown as { msOverflowStyle?: string }).msOverflowStyle = 'none';
-                viewport.style.setProperty('scrollbar-width', 'none', 'important');
-                viewport.style.setProperty('-ms-overflow-style', 'none', 'important');
+                viewport.style.scrollbarWidth = "none";
+                (
+                  viewport.style as unknown as { msOverflowStyle?: string }
+                ).msOverflowStyle = "none";
+                viewport.style.setProperty(
+                  "scrollbar-width",
+                  "none",
+                  "important"
+                );
+                viewport.style.setProperty(
+                  "-ms-overflow-style",
+                  "none",
+                  "important"
+                );
               }
             }
           } catch {
@@ -112,39 +146,47 @@ const TerminalComponent: React.FC<TerminalComponentProps> = ({ className = "" })
         }, 200);
 
         // Write welcome message
-        terminal.writeln('🖥️  Yash Suthar Portfolio Terminal v1.0.0');
-        terminal.writeln('================================================');
+        terminal.writeln("🖥️  Yash Suthar Portfolio Terminal v1.0.0");
+        terminal.writeln("================================================");
         terminal.writeln('Welcome! Type "help" to see available commands.');
-        terminal.writeln('');
-        
+        terminal.writeln("");
+
         // Write initial prompt
         writePrompt(terminal);
 
         // Handle input
-        let currentLine = '';
+        let currentLine = "";
         terminal.onData((data: string) => {
           const char = data.charCodeAt(0);
-          
-          if (char === 13) { // Enter
-            terminal.writeln('');
+
+          if (char === 13) {
+            // Enter
+            audioService.playEnter();
+            terminal.writeln("");
             if (currentLine.trim()) {
-              executeCommand(currentLine.trim()).then(() => {
-                writePrompt(terminal);
-              }).catch(() => {
-                writePrompt(terminal);
-              });
+              executeCommand(currentLine.trim())
+                .then(() => {
+                  writePrompt(terminal);
+                })
+                .catch(() => {
+                  writePrompt(terminal);
+                });
             } else {
               writePrompt(terminal);
             }
-            currentLine = '';
-            setCurrentInput('');
-          } else if (char === 127 || char === 8) { // Backspace
+            currentLine = "";
+            setCurrentInput("");
+          } else if (char === 127 || char === 8) {
+            // Backspace
+            audioService.playKeypress();
             if (currentLine.length > 0) {
               currentLine = currentLine.slice(0, -1);
-              terminal.write('\b \b');
+              terminal.write("\b \b");
               setCurrentInput(currentLine);
             }
-          } else if (char >= 32 && char <= 126) { // Printable characters
+          } else if (char >= 32 && char <= 126) {
+            // Printable characters
+            audioService.playKeypress();
             currentLine += data;
             terminal.write(data);
             setCurrentInput(currentLine);
@@ -156,7 +198,12 @@ const TerminalComponent: React.FC<TerminalComponentProps> = ({ className = "" })
         const handleResize = () => {
           clearTimeout(resizeTimeout);
           resizeTimeout = setTimeout(() => {
-            if (fitAddon && terminal && container.offsetWidth > 0 && container.offsetHeight > 0) {
+            if (
+              fitAddon &&
+              terminal &&
+              container.offsetWidth > 0 &&
+              container.offsetHeight > 0
+            ) {
               try {
                 // Check if terminal is still properly mounted
                 const element = terminal.element;
@@ -168,9 +215,8 @@ const TerminalComponent: React.FC<TerminalComponentProps> = ({ className = "" })
           }, 100);
         };
 
-        window.addEventListener('resize', handleResize);
+        window.addEventListener("resize", handleResize);
         setIsInitialized(true);
-
       } catch {}
     }, 150);
 
@@ -183,25 +229,36 @@ const TerminalComponent: React.FC<TerminalComponentProps> = ({ className = "" })
 
     const terminal = xtermRef.current;
     const lastOutput = session.output[session.output.length - 1];
-    
+
     if (lastOutput && lastOutput.content) {
       try {
-        if (lastOutput.content === '') {
+        if (lastOutput.content === "") {
           // Clear command
           terminal.clear();
           writePrompt(terminal);
-        } else if (lastOutput.content === 'SNAKE_GAME_COMPONENT') {
+        } else if (lastOutput.content === "SNAKE_GAME_COMPONENT") {
           // Show snake game
           setShowSnakeGame(true);
+        } else if (lastOutput.content === "MATRIX_RAIN_COMPONENT") {
+          // Show matrix rain
+          setShowMatrixRain(true);
         } else {
-          // Regular output
-          const lines = lastOutput.content.toString().split('\n');
+          // Regular output with error styling
+          const lines = lastOutput.content.toString().split("\n");
           lines.forEach((line, index) => {
-            if (index === 0 && line.includes('$')) {
+            if (index === 0 && line.includes("$")) {
               // Skip command echo as it's already shown
               return;
             }
-            terminal.writeln(line);
+
+            // Apply red color for error messages
+            if (lastOutput.type === "error") {
+              terminal.write("\x1b[31m"); // Red color
+              terminal.writeln(line);
+              terminal.write("\x1b[0m"); // Reset color
+            } else {
+              terminal.writeln(line);
+            }
           });
         }
       } catch {}
@@ -211,57 +268,70 @@ const TerminalComponent: React.FC<TerminalComponentProps> = ({ className = "" })
   const handleSnakeGameExit = (): void => {
     setShowSnakeGame(false);
     if (xtermRef.current) {
-      xtermRef.current.writeln('Game exited. Thanks for playing!');
+      xtermRef.current.writeln("Game exited. Thanks for playing!");
+      writePrompt(xtermRef.current);
+    }
+  };
+
+  const handleMatrixRainExit = (): void => {
+    setShowMatrixRain(false);
+    if (xtermRef.current) {
+      xtermRef.current.writeln("Matrix rain stopped. Welcome back to reality!");
       writePrompt(xtermRef.current);
     }
   };
 
   return (
-    <div className={`w-full h-full relative ${className}`}>
+    <div className={`relative h-full w-full ${className}`}>
       {/* Loading indicator */}
       {!isInitialized && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black rounded-lg border border-green-400/20 z-10">
-          <div className="text-green-400 animate-pulse text-lg">Initializing terminal...</div>
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg border border-green-400/20 bg-black">
+          <div className="animate-pulse text-lg text-green-400">
+            Initializing terminal...
+          </div>
         </div>
       )}
-      
+
       {/* Terminal container */}
-      <div 
-        ref={terminalRef} 
-        className="w-full h-full p-4 bg-black rounded-lg border-2 border-green-400/40 focus-within:border-green-400/80 transition-colors duration-200 [&_.xterm-viewport]:!scrollbar-none [&_.xterm-viewport]:!overflow-hidden"
-        style={{ 
-          minHeight: '400px', 
-          minWidth: '300px' 
+      <div
+        ref={terminalRef}
+        className="[&_.xterm-viewport]:!scrollbar-none h-full w-full rounded-lg border-2 border-green-400/40 bg-black p-4 transition-colors duration-200 focus-within:border-green-400/80 [&_.xterm-viewport]:!overflow-hidden"
+        style={{
+          minHeight: "400px",
+          minWidth: "300px",
         }}
       />
-      
+
       {/* Snake Game Overlay */}
       {showSnakeGame && (
-        <SnakeGame 
+        <SnakeGame
           onExit={handleSnakeGameExit}
-          isMobile={typeof window !== 'undefined' && window.innerWidth < 768}
+          isMobile={typeof window !== "undefined" && window.innerWidth < 768}
         />
       )}
-      
+
+      {/* Matrix Rain Overlay */}
+      {showMatrixRain && <MatrixRain onExit={handleMatrixRainExit} />}
+
       {/* Mobile helper text */}
-      <div className="md:hidden mt-2 text-xs text-green-400/60 text-center">
+      <div className="mt-2 text-center text-xs text-green-400/60 md:hidden">
         Tap terminal to focus • Swipe up for command palette
       </div>
-      
+
       {/* Command suggestions for mobile */}
       {currentInput && (
-        <div className="md:hidden mt-2 p-2 bg-gray-900/80 rounded border border-green-400/20">
-          <div className="text-xs text-green-400 mb-1">Suggestions:</div>
+        <div className="mt-2 rounded border border-green-400/20 bg-gray-900/80 p-2 md:hidden">
+          <div className="mb-1 text-xs text-green-400">Suggestions:</div>
           <div className="flex flex-wrap gap-1">
-            {['help', 'about', 'skills', 'projects'].map(cmd => (
+            {["help", "about", "skills", "projects"].map(cmd => (
               <button
                 key={cmd}
-                className="px-2 py-1 bg-green-400/10 text-green-400 rounded text-xs border border-green-400/20"
+                className="rounded border border-green-400/20 bg-green-400/10 px-2 py-1 text-xs text-green-400"
                 onClick={() => {
                   if (xtermRef.current) {
                     // Clear current input
                     for (let i = 0; i < currentInput.length; i++) {
-                      xtermRef.current.write('\b \b');
+                      xtermRef.current.write("\b \b");
                     }
                     // Write suggestion
                     xtermRef.current.write(cmd);

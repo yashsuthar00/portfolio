@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { TypeAnimation } from 'react-type-animation';
+import React, { useState, useEffect } from "react";
+import { TypeAnimation } from "react-type-animation";
 
 interface LoaderProps {
   onComplete: () => void;
@@ -37,7 +37,9 @@ const Loader: React.FC<LoaderProps> = ({ onComplete }) => {
   // Audio tick effect
   const playTick = (): void => {
     try {
-      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhAzqA1O/TgC8HI3u+8N+SRQ0PVqzn7q9cFgUzm9fvzEUpBii+z+WgXxgEIG/A7+OKTg8NUabr8LdmGCKEzfKABAA=');
+      const audio = new Audio(
+        "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhAzqA1O/TgC8HI3u+8N+SRQ0PVqzn7q9cFgUzm9fvzEUpBii+z+WgXxgEIG/A7+OKTg8NUabr8LdmGCKEzfKABAA="
+      );
       audio.volume = 0.1;
       audio.play().catch(() => {
         // Ignore audio play errors
@@ -65,13 +67,16 @@ const Loader: React.FC<LoaderProps> = ({ onComplete }) => {
 
   useEffect(() => {
     if (showProgress && progress < 100) {
-      const timer = setTimeout(() => {
-        playTick();
-        setProgress(prev => {
-          const newProgress = prev + Math.random() * 15 + 5;
-          return newProgress > 100 ? 100 : newProgress;
-        });
-      }, 150 + Math.random() * 200);
+      const timer = setTimeout(
+        () => {
+          playTick();
+          setProgress(prev => {
+            const newProgress = prev + Math.random() * 15 + 5;
+            return newProgress > 100 ? 100 : newProgress;
+          });
+        },
+        150 + Math.random() * 200
+      );
 
       return () => clearTimeout(timer);
     } else if (progress >= 100 && !isComplete) {
@@ -80,10 +85,10 @@ const Loader: React.FC<LoaderProps> = ({ onComplete }) => {
         const buttonTimer = setTimeout(() => {
           setShowStartButton(true);
         }, 1000);
-        
+
         return () => clearTimeout(buttonTimer);
       }, 500);
-      
+
       return () => clearTimeout(completionTimer);
     }
 
@@ -96,11 +101,11 @@ const Loader: React.FC<LoaderProps> = ({ onComplete }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black text-green-400 font-mono overflow-hidden">
-      <div className="h-full w-full p-8 flex flex-col">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-black font-mono text-green-400">
+      <div className="flex h-full w-full flex-col p-8">
         {/* BIOS Header */}
-        <div className="text-center mb-8">
-          <div className="text-xl font-bold mb-2">
+        <div className="mb-8 text-center">
+          <div className="mb-2 text-xl font-bold">
             PORTFOLIO BIOS SETUP UTILITY
           </div>
           <div className="text-sm opacity-80">
@@ -112,7 +117,9 @@ const Loader: React.FC<LoaderProps> = ({ onComplete }) => {
         <div className="flex-1 space-y-2">
           {completedSteps.map((step, index) => (
             <div key={index} className="text-sm">
-              {step.includes('┌') || step.includes('│') || step.includes('└') ? (
+              {step.includes("┌") ||
+              step.includes("│") ||
+              step.includes("└") ? (
                 <div className="text-yellow-400">{step}</div>
               ) : (
                 <div>
@@ -148,9 +155,9 @@ const Loader: React.FC<LoaderProps> = ({ onComplete }) => {
               <div className="text-center text-yellow-400">
                 Loading Portfolio Resources...
               </div>
-              <div className="w-full bg-gray-800 rounded">
-                <div 
-                  className="bg-green-400 text-xs font-medium text-black text-center p-0.5 leading-none rounded transition-all duration-300"
+              <div className="w-full rounded bg-gray-800">
+                <div
+                  className="rounded bg-green-400 p-0.5 text-center text-xs leading-none font-medium text-black transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 >
                   {Math.round(progress)}%
@@ -159,7 +166,9 @@ const Loader: React.FC<LoaderProps> = ({ onComplete }) => {
               <div className="text-center text-sm opacity-80">
                 {progress < 30 && "Initializing terminal interface..."}
                 {progress >= 30 && progress < 60 && "Loading 3D components..."}
-                {progress >= 60 && progress < 90 && "Configuring command handlers..."}
+                {progress >= 60 &&
+                  progress < 90 &&
+                  "Configuring command handlers..."}
                 {progress >= 90 && "Finalizing setup..."}
               </div>
             </div>
@@ -167,13 +176,11 @@ const Loader: React.FC<LoaderProps> = ({ onComplete }) => {
 
           {/* Completion Message */}
           {isComplete && (
-            <div className="mt-8 text-center space-y-4">
-              <div className="text-xl text-yellow-400 font-bold">
+            <div className="mt-8 space-y-4 text-center">
+              <div className="text-xl font-bold text-yellow-400">
                 System Ready!
               </div>
-              <div className="text-lg">
-                Yash Suthar Portfolio Showcase
-              </div>
+              <div className="text-lg">Yash Suthar Portfolio Showcase</div>
               <div className="text-sm opacity-80">
                 Click START to begin your journey
               </div>
@@ -183,10 +190,10 @@ const Loader: React.FC<LoaderProps> = ({ onComplete }) => {
 
         {/* Start Button */}
         {showStartButton && (
-          <div className="text-center mt-8">
+          <div className="mt-8 text-center">
             <button
               onClick={handleStart}
-              className="px-8 py-3 bg-green-400 text-black font-bold text-lg rounded hover:bg-green-300 transition-colors duration-200 animate-pulse"
+              className="animate-pulse rounded bg-green-400 px-8 py-3 text-lg font-bold text-black transition-colors duration-200 hover:bg-green-300"
             >
               START
             </button>

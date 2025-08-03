@@ -1,39 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.2);
-  --glass-shadow: rgba(0, 0, 0, 0.1);
-  --glass-card-bg: rgba(255, 255, 255, 0.5);
-  --glass-card-border: rgba(255, 255, 255, 0.1);
-}
+  /* Portfolio color scheme as per NEWJSONPROMPT.md */
+  --background: #141415;
+  --foreground: #ffffff;
+  --terminal-bg: #1a2328;
+  --accent: #2196f3;
+  --prompt: #2196f3;
+  --cursor: #00ff99;
+  --card-panel: #1a2328;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --glass-bg: rgba(15, 15, 15, 0.8);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-shadow: rgba(0, 0, 0, 0.3);
-    --glass-card-bg: rgba(25, 25, 25, 0.65);
-    --glass-card-border: rgba(255, 255, 255, 0.08);
-  }
+  /* Glass effects updated for dark theme */
+  --glass-bg: rgba(26, 35, 40, 0.8);
+  --glass-border: rgba(33, 150, 243, 0.2);
+  --glass-shadow: rgba(0, 0, 0, 0.3);
+  --glass-card-bg: rgba(26, 35, 40, 0.65);
+  --glass-card-border: rgba(33, 150, 243, 0.1);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), "Consolas", "Monaco", "Menlo", monospace;
   line-height: 1.6;
+  margin: 0;
+  padding: 0;
 }
 
 /* Hide xterm.js scrollbar */
@@ -57,16 +48,20 @@ body {
 
 /* Animation keyframes */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { 
+  from {
     opacity: 0;
     transform: scale(0.95);
   }
-  to { 
+  to {
     opacity: 1;
     transform: scale(1);
   }
@@ -172,16 +167,19 @@ main {
 /* Dark mode specific enhancements */
 @media (prefers-color-scheme: dark) {
   .glass-card {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
   }
-  
+
   /* Subtle glow for interactive elements in dark mode */
   .interactive-glow:hover {
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
   }
-  
+
   /* Improved contrast for text on glass backgrounds */
-  .glass-card h4, .glass-morphism h3 {
+  .glass-card h4,
+  .glass-morphism h3 {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 }

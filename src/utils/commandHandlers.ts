@@ -1,10 +1,117 @@
-import { CommandOutput, TerminalSession, CommandHandler } from '@/types';
-import { portfolioData } from '@/data/portfolio';
+import { CommandOutput, TerminalSession, CommandHandler } from "@/types";
+import { portfolioData } from "@/data/portfolio";
+import { audioService } from "@/services/AudioService";
+
+// Command similarity function for typo suggestions
+function getSimilarCommands(input: string, commands: string[]): string[] {
+  const similarities = commands.map(cmd => ({
+    cmd,
+    similarity: calculateSimilarity(input.toLowerCase(), cmd.toLowerCase()),
+  }));
+
+  return similarities
+    .filter(item => item.similarity > 0.4)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 3)
+    .map(item => item.cmd);
+}
+
+function calculateSimilarity(str1: string, str2: string): number {
+  if (str1 === str2) return 1;
+  if (str1.length === 0 || str2.length === 0) return 0;
+
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+
+  if (longer.includes(shorter)) return shorter.length / longer.length;
+
+  // Simple Levenshtein distance-based similarity
+  const editDistance = getEditDistance(str1, str2);
+  return (longer.length - editDistance) / longer.length;
+}
+
+function getEditDistance(str1: string, str2: string): number {
+  const matrix: number[][] = Array(str2.length + 1)
+    .fill(null)
+    .map(() => Array(str1.length + 1).fill(0));
+
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i]![0] = i;
+  }
+
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0]![j] = j;
+  }
+
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i]![j] = matrix[i - 1]![j - 1]!;
+      } else {
+        matrix[i]![j] = Math.min(
+          matrix[i - 1]![j - 1]! + 1,
+          matrix[i]![j - 1]! + 1,
+          matrix[i - 1]![j]! + 1
+        );
+      }
+    }
+  }
+
+  return matrix[str2.length]![str1.length]!;
+}
+
+export const allCommands = [
+  "help",
+  "about",
+  "skills",
+  "experience",
+  "education",
+  "projects",
+  "certifications",
+  "contact",
+  "funfact",
+  "ls",
+  "pwd",
+  "cd",
+  "cat",
+  "grep",
+  "whoami",
+  "date",
+  "clear",
+  "neofetch",
+  "matrix",
+  "figlet",
+  "cowsay",
+  "fortune",
+  "snake",
+  "man",
+  "history",
+  "alias",
+  "cmatrix",
+];
+
+export function createUnknownCommandResponse(input: string): CommandOutput {
+  const suggestions = getSimilarCommands(input, allCommands);
+
+  let content = `Command not found: ${input}`;
+
+  if (suggestions.length > 0) {
+    content += `\n\nDid you mean:\n${suggestions.map(cmd => `  • ${cmd}`).join("\n")}`;
+  }
+
+  content += `\n\nType 'help' to see all available commands.`;
+
+  return {
+    type: "error",
+    content,
+    timestamp: new Date(),
+  };
+}
 
 export const commandHandlers: Record<string, CommandHandler> = {
   // Portfolio Commands
   help: () => ({
-    type: 'text',
+    type: "text",
     content: `🎯 Yash Suthar Portfolio Terminal - Available Commands:
 
 📋 PORTFOLIO COMMANDS:
@@ -41,13 +148,13 @@ export const commandHandlers: Record<string, CommandHandler> = {
   alias         - Show command aliases
   
 Type any command to explore! Pro tip: Try 'neofetch' for a cool system overview.`,
-    timestamp: new Date()
+    timestamp: new Date(),
   }),
 
   about: () => ({
-    type: 'text',
+    type: "text",
     content: `👨‍💻 About Yash Suthar
-${'='.repeat(50)}
+${"=".repeat(50)}
 
 ${portfolioData.personal.bio}
 
@@ -69,18 +176,18 @@ Always excited to tackle challenging problems and learn new technologies.
 I believe great code is like poetry - it should be beautiful, efficient, and meaningful.
 
 Type 'skills' to see my technical expertise!`,
-    timestamp: new Date()
+    timestamp: new Date(),
   }),
 
   skills: () => {
-    const skillsText = portfolioData.skills.map(category => 
-      `${category.category}:\n  ${category.items.join(' • ')}`
-    ).join('\n\n');
+    const skillsText = portfolioData.skills
+      .map(category => `${category.category}:\n  ${category.items.join(" • ")}`)
+      .join("\n\n");
 
     return {
-      type: 'text',
+      type: "text",
       content: `💻 Technical Skills & Expertise
-${'='.repeat(50)}
+${"=".repeat(50)}
 
 ${skillsText}
 
@@ -89,25 +196,28 @@ ${skillsText}
 ⭐⭐⭐☆☆ Intermediate ⭐⭐☆☆☆ Learning
 
 Type 'experience' to see how I've applied these skills professionally!`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   },
 
   experience: () => {
-    const experienceText = portfolioData.experience.map((exp, index) => 
-      `${index + 1}. ${exp.position} at ${exp.company}
+    const experienceText = portfolioData.experience
+      .map(
+        (exp, index) =>
+          `${index + 1}. ${exp.position} at ${exp.company}
    Duration: ${exp.duration}
    
    Key Achievements:
-   ${exp.description.map(desc => `   • ${desc}`).join('\n')}
+   ${exp.description.map(desc => `   • ${desc}`).join("\n")}
    
-   Technologies: ${exp.technologies.join(', ')}`
-    ).join('\n\n');
+   Technologies: ${exp.technologies.join(", ")}`
+      )
+      .join("\n\n");
 
     return {
-      type: 'text',
+      type: "text",
       content: `🏢 Professional Experience
-${'='.repeat(50)}
+${"=".repeat(50)}
 
 ${experienceText}
 
@@ -118,24 +228,27 @@ ${experienceText}
 • Collaborated with cross-functional teams on product strategy
 
 Type 'projects' to see some of my featured work!`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   },
 
   education: () => {
-    const educationText = portfolioData.education.map((edu, index) => 
-      `${index + 1}. ${edu.degree}
+    const educationText = portfolioData.education
+      .map(
+        (edu, index) =>
+          `${index + 1}. ${edu.degree}
    Institution: ${edu.institution}
    Duration: ${edu.duration}
-   ${edu.gpa ? `GPA: ${edu.gpa}` : ''}
+   ${edu.gpa ? `GPA: ${edu.gpa}` : ""}
    
-   ${edu.achievements ? `Achievements:\n   ${edu.achievements.map(ach => `• ${ach}`).join('\n   ')}` : ''}`
-    ).join('\n\n');
+   ${edu.achievements ? `Achievements:\n   ${edu.achievements.map(ach => `• ${ach}`).join("\n   ")}` : ""}`
+      )
+      .join("\n\n");
 
     return {
-      type: 'text',
+      type: "text",
       content: `🎓 Educational Background
-${'='.repeat(50)}
+${"=".repeat(50)}
 
 ${educationText}
 
@@ -146,7 +259,7 @@ ${educationText}
 • Project management and team collaboration
 
 Type 'certifications' to see my professional certifications!`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   },
 
@@ -154,45 +267,54 @@ Type 'certifications' to see my professional certifications!`,
     const featuredProjects = portfolioData.projects.filter(p => p.featured);
     const otherProjects = portfolioData.projects.filter(p => !p.featured);
 
-    const projectText = (projects: typeof portfolioData.projects, title: string) => 
-      `${title}:\n${projects.map((project, index) => 
-        `${index + 1}. ${project.name}
+    const projectText = (
+      projects: typeof portfolioData.projects,
+      title: string
+    ) =>
+      `${title}:\n${projects
+        .map(
+          (project, index) =>
+            `${index + 1}. ${project.name}
    ${project.description}
-   Tech Stack: ${project.technologies.join(', ')}
-   ${project.githubUrl ? `🔗 GitHub: ${project.githubUrl}` : ''}
-   ${project.liveUrl ? `🌐 Live: ${project.liveUrl}` : ''}`
-      ).join('\n\n')}`;
+   Tech Stack: ${project.technologies.join(", ")}
+   ${project.githubUrl ? `🔗 GitHub: ${project.githubUrl}` : ""}
+   ${project.liveUrl ? `🌐 Live: ${project.liveUrl}` : ""}`
+        )
+        .join("\n\n")}`;
 
     return {
-      type: 'text',
+      type: "text",
       content: `🚀 Portfolio Projects
-${'='.repeat(50)}
+${"=".repeat(50)}
 
-${projectText(featuredProjects, '⭐ Featured Projects')}
+${projectText(featuredProjects, "⭐ Featured Projects")}
 
-${otherProjects.length > 0 ? '\n' + projectText(otherProjects, '📁 Other Projects') : ''}
+${otherProjects.length > 0 ? "\n" + projectText(otherProjects, "📁 Other Projects") : ""}
 
 💡 Project Philosophy:
 I believe in building projects that solve real problems and provide value.
 Each project is an opportunity to learn new technologies and improve my skills.
 
 Type 'contact' to discuss potential collaborations!`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   },
 
   certifications: () => {
-    const certsText = portfolioData.certifications.map((cert, index) => 
-      `${index + 1}. ${cert.name}
+    const certsText = portfolioData.certifications
+      .map(
+        (cert, index) =>
+          `${index + 1}. ${cert.name}
    Issuer: ${cert.issuer}
    Year: ${cert.date}
-   ${cert.url ? `🔗 Verify: ${cert.url}` : ''}`
-    ).join('\n\n');
+   ${cert.url ? `🔗 Verify: ${cert.url}` : ""}`
+      )
+      .join("\n\n");
 
     return {
-      type: 'text',
+      type: "text",
       content: `🏅 Professional Certifications
-${'='.repeat(50)}
+${"=".repeat(50)}
 
 ${certsText}
 
@@ -201,19 +323,19 @@ I believe in staying updated with the latest technologies and best practices.
 These certifications represent my commitment to professional growth and excellence.
 
 Type 'skills' to see how these certifications enhance my technical abilities!`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   },
 
   contact: () => {
-    const socialText = portfolioData.socialLinks.map(social => 
-      `${social.platform}: ${social.url}`
-    ).join('\n');
+    const socialText = portfolioData.socialLinks
+      .map(social => `${social.platform}: ${social.url}`)
+      .join("\n");
 
     return {
-      type: 'text',
+      type: "text",
       content: `📱 Get In Touch
-${'='.repeat(50)}
+${"=".repeat(50)}
 
 📧 Email: ${portfolioData.personal.email}
 📍 Location: ${portfolioData.personal.location}
@@ -232,7 +354,7 @@ For professional inquiries: Email
 For quick questions: LinkedIn
 
 Looking forward to connecting with you! 🤝`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   },
 
@@ -245,44 +367,44 @@ Looking forward to connecting with you! 🤝`,
       "I've probably googled 'how to center a div' more times than I care to admit",
       "My rubber duck debugging buddy has helped solve more bugs than Stack Overflow",
       "I once spent a day optimizing code only to realize the bottleneck was my internet connection",
-      "The best code I've ever written was deleted by accident. Murphy's Law in action!"
+      "The best code I've ever written was deleted by accident. Murphy's Law in action!",
     ];
 
     const randomFact = facts[Math.floor(Math.random() * facts.length)];
 
     return {
-      type: 'text',
+      type: "text",
       content: `🎭 Random Fun Fact
-${'='.repeat(50)}
+${"=".repeat(50)}
 
 ${randomFact}
 
 Type 'funfact' again for another one! 🎲`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   },
 
   // System Commands
   whoami: (_, session) => ({
-    type: 'text',
+    type: "text",
     content: session.user,
-    timestamp: new Date()
+    timestamp: new Date(),
   }),
 
   pwd: (_, session) => ({
-    type: 'text',
+    type: "text",
     content: session.currentDirectory,
-    timestamp: new Date()
+    timestamp: new Date(),
   }),
 
   date: () => ({
-    type: 'text',
+    type: "text",
     content: new Date().toString(),
-    timestamp: new Date()
+    timestamp: new Date(),
   }),
 
   ls: () => ({
-    type: 'text',
+    type: "text",
     content: `total 8
 drwxr-xr-x 2 yash yash 4096 Aug  3 15:30 documents/
 drwxr-xr-x 2 yash yash 4096 Aug  3 15:30 projects/
@@ -290,18 +412,18 @@ drwxr-xr-x 2 yash yash 4096 Aug  3 15:30 skills/
 -rw-r--r-- 1 yash yash  256 Aug  3 15:30 about.txt
 -rw-r--r-- 1 yash yash  512 Aug  3 15:30 resume.pdf
 -rw-r--r-- 1 yash yash  128 Aug  3 15:30 contact.txt`,
-    timestamp: new Date()
+    timestamp: new Date(),
   }),
 
   clear: () => ({
-    type: 'text',
-    content: '',
-    timestamp: new Date()
+    type: "text",
+    content: "",
+    timestamp: new Date(),
   }),
 
   // Fun Commands
   neofetch: () => ({
-    type: 'text',
+    type: "text",
     content: `                   -\`                 yash@portfolio 
                   .o+\`                 -------------- 
                  \`ooo/                 OS: Portfolio Linux x86_64 
@@ -321,47 +443,50 @@ drwxr-xr-x 2 yash yash 4096 Aug  3 15:30 skills/
   \`+sso+:-\`                 \`.-/+oso:  Memory: 16384MiB / 32768MiB 
  \`++:.                           \`-/+/
  .\`                                 \`/`,
-    timestamp: new Date()
+    timestamp: new Date(),
   }),
 
-  figlet: (args) => {
-    const text = args.join(' ') || 'Yash Suthar';
+  figlet: args => {
+    const text = args.join(" ") || "Yash Suthar";
     // Simple ASCII art generation (basic implementation)
-    const asciiText = text.split('').map(char => {
-      if (char === ' ') return '     ';
-      return `
+    const asciiText = text
+      .split("")
+      .map(char => {
+        if (char === " ") return "     ";
+        return `
  ██████ 
 ██    ██
 ██    ██
 ██    ██
  ██████ `.trim();
-    }).join('\n');
+      })
+      .join("\n");
 
     return {
-      type: 'text',
+      type: "text",
       content: `ASCII Art for "${text}":
 ${asciiText}
 
 Note: This is a simplified figlet implementation. Full ASCII art coming soon!`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   },
 
-  cowsay: (args) => {
-    const message = args.join(' ') || 'Hello from Yash!';
+  cowsay: args => {
+    const message = args.join(" ") || "Hello from Yash!";
     const messageLength = message.length;
-    
+
     return {
-      type: 'text',
-      content: ` ${'_'.repeat(messageLength + 2)}
+      type: "text",
+      content: ` ${"_".repeat(messageLength + 2)}
 < ${message} >
- ${'-'.repeat(messageLength + 2)}
+ ${"-".repeat(messageLength + 2)}
         \\   ^__^
          \\  (oo)\\_______
             (__)\\       )\\/\\
                 ||----w |
                 ||     ||`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   },
 
@@ -374,29 +499,35 @@ Note: This is a simplified figlet implementation. Full ASCII art coming soon!`,
       "The most important property of a program is whether it accomplishes the intention of its user.",
       "Simplicity is the ultimate sophistication.",
       "Make it work, make it right, make it fast.",
-      "Code is like humor. When you have to explain it, it's bad."
+      "Code is like humor. When you have to explain it, it's bad.",
     ];
 
     const randomFortune = fortunes[Math.floor(Math.random() * fortunes.length)];
 
     return {
-      type: 'text',
+      type: "text",
       content: `🔮 Fortune Says:
 "${randomFortune}"`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   },
 
   snake: () => ({
-    type: 'component',
-    content: 'SNAKE_GAME_COMPONENT',
-    timestamp: new Date()
+    type: "component",
+    content: "SNAKE_GAME_COMPONENT",
+    timestamp: new Date(),
+  }),
+
+  matrix: () => ({
+    type: "component",
+    content: "MATRIX_RAIN_COMPONENT",
+    timestamp: new Date(),
   }),
 
   cmatrix: () => ({
-    type: 'text',
+    type: "text",
     content: `🌊 Digital Rain Effect
-${'='.repeat(50)}
+${"=".repeat(50)}
 
 Starting Matrix-style digital rain...
 (This would show falling green characters in a real implementation)
@@ -413,57 +544,57 @@ Starting Matrix-style digital rain...
 01001000 01000001 01001110 01000011 01000101
 
 Press Ctrl+C to stop the matrix effect.`,
-    timestamp: new Date()
+    timestamp: new Date(),
   }),
 
   history: (_, session) => ({
-    type: 'text',
-    content: session.history.map((cmd, index) => 
-      `${index + 1}  ${cmd}`
-    ).join('\n'),
-    timestamp: new Date()
+    type: "text",
+    content: session.history
+      .map((cmd, index) => `${index + 1}  ${cmd}`)
+      .join("\n"),
+    timestamp: new Date(),
   }),
 
-  man: (args) => {
+  man: args => {
     const command = args[0];
     const manPages: Record<string, string> = {
-      help: 'help - Display available commands and their descriptions',
-      about: 'about - Show information about Yash Suthar',
-      skills: 'skills - Display technical skills and expertise',
-      experience: 'experience - Show professional work experience',
-      projects: 'projects - Display portfolio projects',
-      contact: 'contact - Show contact information and social links',
-      ls: 'ls - List directory contents',
-      clear: 'clear - Clear the terminal screen',
-      neofetch: 'neofetch - Display system information with ASCII art'
+      help: "help - Display available commands and their descriptions",
+      about: "about - Show information about Yash Suthar",
+      skills: "skills - Display technical skills and expertise",
+      experience: "experience - Show professional work experience",
+      projects: "projects - Display portfolio projects",
+      contact: "contact - Show contact information and social links",
+      ls: "ls - List directory contents",
+      clear: "clear - Clear the terminal screen",
+      neofetch: "neofetch - Display system information with ASCII art",
     };
 
     if (!command) {
       return {
-        type: 'text',
-        content: 'man: What manual page do you want?\nUsage: man [command]',
-        timestamp: new Date()
+        type: "text",
+        content: "man: What manual page do you want?\nUsage: man [command]",
+        timestamp: new Date(),
       };
     }
 
     const manPage = manPages[command];
     if (manPage) {
       return {
-        type: 'text',
+        type: "text",
         content: `Manual page for ${command}:
 ${manPage}
 
 Type 'help' to see all available commands.`,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     }
 
     return {
-      type: 'text',
+      type: "text",
       content: `No manual entry for ${command}`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-  }
+  },
 };
 
 export async function executeCommand(
@@ -472,15 +603,16 @@ export async function executeCommand(
   session: TerminalSession
 ): Promise<CommandOutput> {
   const handler = commandHandlers[command.toLowerCase()];
-  
+
   if (handler) {
+    // Play success sound for valid commands
+    audioService.playEnter();
     return handler(args, session);
   }
 
-  // Command not found
-  return {
-    type: 'text',
-    content: `Command '${command}' not found. Type 'help' for available commands.`,
-    timestamp: new Date()
-  };
+  // Play error sound for unknown commands
+  audioService.playError();
+
+  // Command not found - return error with suggestions
+  return createUnknownCommandResponse(command);
 }

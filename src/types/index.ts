@@ -4,12 +4,12 @@ export interface TerminalCommand {
   command: string;
   args: string[];
   description: string;
-  category: 'portfolio' | 'system' | 'fun' | 'games';
+  category: "portfolio" | "system" | "fun" | "games";
   hidden?: boolean;
 }
 
 export interface CommandOutput {
-  type: 'text' | 'html' | 'component';
+  type: "text" | "html" | "component" | "error";
   content: string | React.ReactNode;
   timestamp: Date;
 }
@@ -73,13 +73,13 @@ export interface GameState {
   isActive: boolean;
   score: number;
   highScore: number;
-  gameType: 'snake' | null;
+  gameType: "snake" | null;
 }
 
 export interface SnakeGame {
   snake: { x: number; y: number }[];
   food: { x: number; y: number };
-  direction: 'up' | 'down' | 'left' | 'right';
+  direction: "up" | "down" | "left" | "right";
   score: number;
   gameOver: boolean;
   boardSize: { width: number; height: number };
@@ -125,12 +125,15 @@ export interface Theme {
 
 export interface ResponsiveState {
   isMobile: boolean;
-  activePanel: 'terminal' | 'card' | 'both';
-  swipeDirection: 'vertical' | 'horizontal';
+  activePanel: "terminal" | "card" | "both";
+  swipeDirection: "vertical" | "horizontal";
 }
 
 // Terminal Command Handler Types
-export type CommandHandler = (args: string[], session: TerminalSession) => Promise<CommandOutput> | CommandOutput;
+export type CommandHandler = (
+  args: string[],
+  session: TerminalSession
+) => Promise<CommandOutput> | CommandOutput;
 
 export interface CommandRegistry {
   [key: string]: {
@@ -173,7 +176,7 @@ export interface UseTerminalReturn {
 
 export interface UseGameReturn {
   gameState: GameState;
-  startGame: (gameType: 'snake') => void;
+  startGame: (gameType: "snake") => void;
   endGame: () => void;
   updateScore: (score: number) => void;
 }
