@@ -51,7 +51,9 @@ export default function RootLayout({
   if (process.env.NODE_ENV === 'development') {
     // This runs only on the client side
     if (typeof window !== 'undefined') {
+      // eslint-disable-next-line no-console
       const originalError = console.error;
+      // eslint-disable-next-line no-console
       console.error = (...args) => {
         if (
           typeof args[0] === 'string' &&

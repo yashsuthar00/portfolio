@@ -36,6 +36,25 @@ body {
   line-height: 1.6;
 }
 
+/* Hide xterm.js scrollbar */
+.xterm-viewport {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* Internet Explorer 10+ */
+}
+
+.xterm-viewport::-webkit-scrollbar {
+  display: none !important; /* WebKit */
+}
+
+.xterm .xterm-viewport {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar {
+  display: none !important;
+}
+
 /* Animation keyframes */
 @keyframes fadeIn {
   from { opacity: 0; }
