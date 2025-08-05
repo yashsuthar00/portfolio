@@ -50,10 +50,12 @@ const scoreSchema = new mongoose.Schema({
   sanitizedName: {
     type: String,
     required: true,
+    lowercase: true,
   },
 });
 
 scoreSchema.index({ game: 1, score: -1 });
+scoreSchema.index({ game: 1, sanitizedName: 1 });
 
 // Create and export the Score model with proper typing
 const Score: Model<IScore> =
@@ -83,15 +85,37 @@ export async function addScore(
 
     const sanitizedName = sanitizeName(playerName) || "Anonymous";
 
-    const newScore = new Score({
-      playerName: sanitizedName,
-      score,
+    // Check if player already exists
+    const existingScore = await Score.findOne({
+      sanitizedName: sanitizedName.toLowerCase(),
       game,
-      sanitizedName,
-    });
+    }).sort({ score: -1 });
 
-    await newScore.save();
-    return true;
+    if (existingScore) {
+      // Player exists, only update if new score is higher
+      if (score > existingScore.score) {
+        await Score.updateOne(
+          { _id: existingScore._id },
+          {
+            score,
+            createdAt: new Date(), // Update timestamp for recent scores
+          }
+        );
+      }
+      // Return true regardless to indicate successful operation
+      return true;
+    } else {
+      // New player, add to leaderboard
+      const newScore = new Score({
+        playerName: sanitizedName,
+        score,
+        game,
+        sanitizedName: sanitizedName.toLowerCase(),
+      });
+
+      await newScore.save();
+      return true;
+    }
   } catch {
     // Error adding score
     return false;

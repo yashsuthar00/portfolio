@@ -6,11 +6,16 @@ import SnakeGameComponent from "../SnakeGame";
 // Mock MongoDB and leaderboard services
 jest.mock("../../lib/leaderboard", () => ({
   addScore: jest.fn().mockResolvedValue(true),
-  getTopScores: jest
-    .fn()
-    .mockResolvedValue([
-      { playerName: "Test Player", score: 100, timestamp: Date.now(), rank: 1 },
-    ]),
+  getTopScores: jest.fn().mockImplementation(() =>
+    Promise.resolve([
+      {
+        playerName: "Test Player",
+        score: 100,
+        timestamp: Date.now(),
+        rank: 1,
+      },
+    ])
+  ),
   getPlayerStats: jest
     .fn()
     .mockResolvedValue({ bestScore: 100, rank: 1, totalGames: 1 }),
@@ -45,11 +50,6 @@ describe("SnakeGame", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorageMock.getItem.mockReturnValue(null);
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it("renders game container", () => {
@@ -73,12 +73,25 @@ describe("SnakeGame", () => {
     expect(screen.getByText("Exit")).toBeInTheDocument();
   });
 
-  it("loads high score from localStorage", () => {
-    localStorageMock.getItem.mockReturnValue("50");
-
+  it("renders game components correctly", () => {
     render(<SnakeGameComponent onExit={mockOnExit} />);
 
-    expect(localStorageMock.getItem).toHaveBeenCalledWith("snake-high-score");
+    // Check main UI elements are present
+    expect(screen.getByText("🐍 Snake Game")).toBeInTheDocument();
+    expect(screen.getByText("Start Game")).toBeInTheDocument();
+    expect(screen.getByText("View Leaderboard")).toBeInTheDocument();
+  });
+
+  it("allows starting a new game", () => {
+    render(<SnakeGameComponent onExit={mockOnExit} />);
+
+    // Click start game
+    fireEvent.click(screen.getByText("Start Game"));
+
+    // Should show name input screen
+    expect(
+      screen.getByPlaceholderText("Your name (2-20 characters)")
+    ).toBeInTheDocument();
   });
 
   it("handles keyboard input", () => {

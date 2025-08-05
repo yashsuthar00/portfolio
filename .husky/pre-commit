@@ -1,16 +1,10 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+# Run lint-staged to format and fix files
+npx lint-staged
 
 # Run type checking
 npm run type-check
 
-# Run linting
-npm run lint
-
-# Run formatting check
-npm run format:check
-
-# Run tests
-npm run test
+# Run tests (quick check)
+npm run test:ci
 
 echo "✅ Pre-commit checks passed!"

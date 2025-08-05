@@ -58,13 +58,34 @@ export async function addScore(
   }
 
   // Fallback to in-memory storage
-  const entry: LeaderboardEntry = {
-    playerName: sanitizedName,
-    score,
-    timestamp: Date.now(),
-  };
+  // Check if player already exists
+  const existingPlayerIndex = inMemoryScores.findIndex(
+    existing =>
+      existing.playerName.toLowerCase() === sanitizedName.toLowerCase()
+  );
 
-  inMemoryScores.push(entry);
+  if (existingPlayerIndex !== -1) {
+    // Player exists, only update if new score is higher
+    const existingPlayer = inMemoryScores[existingPlayerIndex];
+    if (existingPlayer && score > existingPlayer.score) {
+      // Update existing player with new higher score
+      inMemoryScores[existingPlayerIndex] = {
+        playerName: sanitizedName,
+        score,
+        timestamp: Date.now(),
+      };
+    }
+    // If score is lower or equal, don't add/update
+    return true;
+  } else {
+    // New player, add to leaderboard
+    const entry: LeaderboardEntry = {
+      playerName: sanitizedName,
+      score,
+      timestamp: Date.now(),
+    };
+    inMemoryScores.push(entry);
+  }
 
   // Keep only top 100 scores to prevent memory bloat
   inMemoryScores.sort((a, b) => b.score - a.score);
@@ -176,4 +197,35 @@ export async function getTotalPlayers(): Promise<number> {
     inMemoryScores.map(entry => entry.playerName.toLowerCase())
   );
   return uniquePlayers.size;
+}
+
+/**
+ * Get recent scores from leaderboard (chronologically recent, not top scores)
+ */
+export async function getRecentScores(
+  limit: number = 5
+): Promise<LeaderboardEntry[]> {
+  try {
+    // Try API first - for now we'll sort client-side
+    const response = await fetch(`/api/leaderboard?limit=50`); // Get more to sort by time
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.scores
+        .sort(
+          (a: LeaderboardEntry, b: LeaderboardEntry) =>
+            b.timestamp - a.timestamp
+        )
+        .slice(0, limit);
+    }
+  } catch {
+    // API failed, use in-memory storage
+  }
+
+  // Fallback to in-memory storage
+  const recentScores = [...inMemoryScores]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, limit);
+
+  return recentScores;
 }

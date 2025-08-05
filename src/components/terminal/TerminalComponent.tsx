@@ -8,9 +8,18 @@ import useTerminal from "@/hooks/useTerminal";
 import { audioService } from "@/services/AudioService";
 import dynamic from "next/dynamic";
 
-const SnakeGame = dynamic(() => import("@/components/SnakeGame"), {
-  ssr: false,
-});
+const SnakeGame = dynamic(
+  () =>
+    import("@/components/SnakeGame").then(mod => ({ default: mod.default })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
+        <div className="text-green-400">Loading Snake Game...</div>
+      </div>
+    ),
+  }
+);
 
 const MatrixRain = dynamic(() => import("@/components/MatrixRain"), {
   ssr: false,

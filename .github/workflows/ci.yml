@@ -46,9 +46,13 @@ jobs:
       
     - name: Run Tests
       run: npm run test:ci
+      env:
+        MONGODB_URI: ${{ secrets.MONGODB_URI }}
       
     - name: Build project
       run: npm run build
+      env:
+        MONGODB_URI: ${{ secrets.MONGODB_URI }}
       
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4

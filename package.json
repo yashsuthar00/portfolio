@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack --port 5173",
     "build": "next build",
     "start": "next start",
     "lint": "eslint 'src/**/*.{ts,tsx}' --max-warnings=0",
@@ -11,12 +11,14 @@
     "type-check": "tsc --noEmit --strict",
     "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx,json,css,md}'",
     "format:check": "prettier --check 'src/**/*.{ts,tsx,js,jsx,json,css,md}'",
+    "format:all": "prettier --write 'src/**/*.{ts,tsx,js,jsx,json,css,md}' && eslint 'src/**/*.{ts,tsx}' --fix",
+    "format:staged": "lint-staged",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
     "ci": "npm run type-check && npm run lint && npm run format:check && npm run test:ci && npm run build",
-    "prepare": "npm run format && npm run lint:fix"
+    "prepare": "husky"
   },
   "dependencies": {
     "@react-three/drei": "^10.6.1",
@@ -50,11 +52,22 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
+    "husky": "^9.1.7",
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
+    "lint-staged": "^16.1.4",
     "mongoose": "^8.17.0",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx,js,jsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "src/**/*.{json,css,md}": [
+      "prettier --write"
+    ]
   }
 }
