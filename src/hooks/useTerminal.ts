@@ -9,8 +9,8 @@ const useTerminal = (): UseTerminalReturn => {
     history: [],
     output: [],
     currentDirectory: "~",
-    user: "visitor",
-    hostname: "yashsuthar.com",
+    user: "yash",
+    hostname: "portfolio",
   });
 
   const commandIndex = useRef<number>(-1);

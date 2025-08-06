@@ -11,6 +11,7 @@ import {
   PlayerStats,
 } from "@/lib/leaderboard";
 import { audioService } from "@/services/AudioService";
+import { realtimeService } from "@/services/RealtimeService";
 
 interface SnakeGameComponentProps {
   onExit: () => void;
@@ -50,19 +51,40 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
   const [collisionType, setCollisionType] = useState<"wall" | "self" | null>(
     null
   );
+  const [pendingDirection, setPendingDirection] = useState<
+    "up" | "down" | "left" | "right" | null
+  >(null);
 
-  // Update recent scores in real-time
+  // Direction queue for ultra-smooth rapid key handling
+  const [directionQueue, setDirectionQueue] = useState<
+    ("up" | "down" | "left" | "right")[]
+  >([]);
+  const [nameInputDisabled, setNameInputDisabled] = useState<boolean>(false);
+  const [showEditIcon, setShowEditIcon] = useState<boolean>(false);
+
+  // Simplified state without complex animations
+  const [specialFood, setSpecialFood] = useState<{
+    x: number;
+    y: number;
+    type: "golden" | "speed" | "bonus";
+  } | null>(null);
+  const [speedBoost, setSpeedBoost] = useState<boolean>(false);
+  const [powerUpTimer, setPowerUpTimer] = useState<number>(0);
+
+  // Simplified recent scores update without complex animations
   const updateRecentScores = useCallback(async () => {
     // Skip in test environment to avoid act warnings
     if (process.env.NODE_ENV === "test") return;
 
     try {
       const chronologicalRecent = await getRecentScores(5);
+
+      // Simply update the scores, no complex animations
       setRecentScores(chronologicalRecent);
     } catch {
       // Silently handle errors to avoid breaking the game
     }
-  }, []);
+  }, []); // Remove dependencies to prevent infinite loops
 
   // Load high score from localStorage
   useEffect(() => {
@@ -72,19 +94,51 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
     }
   }, []);
 
-  // Load recent scores initially and set up periodic updates
+  // Initialize realtime connection with minimal performance impact
   useEffect(() => {
-    updateRecentScores();
+    let isInitialized = false;
 
-    // Update recent scores more frequently during active gameplay for competitive feel
-    const interval = setInterval(() => {
-      if (gameStarted) {
-        updateRecentScores();
-      }
-    }, 5000); // Update every 5 seconds during game
+    const initRealtime = () => {
+      if (isInitialized) return;
+      isInitialized = true;
 
-    return () => clearInterval(interval);
-  }, [updateRecentScores, gameStarted]);
+      realtimeService.connect();
+      realtimeService.joinGameRoom();
+
+      // Set up real-time score listeners (simplified)
+      const handleRecentScoresUpdate = (
+        newRecentScores: LeaderboardEntry[]
+      ) => {
+        if (process.env.NODE_ENV !== "test") {
+          React.startTransition(() => {
+            setRecentScores(newRecentScores);
+          });
+        }
+      };
+
+      const handleLeaderboardUpdate = (newLeaderboard: LeaderboardEntry[]) => {
+        if (process.env.NODE_ENV !== "test") {
+          React.startTransition(() => {
+            setLeaderboard(newLeaderboard);
+          });
+        }
+      };
+
+      realtimeService.onRecentScoresUpdate(handleRecentScoresUpdate);
+      realtimeService.onLeaderboardUpdate(handleLeaderboardUpdate);
+    };
+
+    // Initialize immediately without complex timing
+    initRealtime();
+
+    return () => {
+      realtimeService.off();
+      realtimeService.leaveGameRoom();
+      realtimeService.disconnect();
+    };
+  }, []); // Empty dependencies to run only once
+
+  // Removed fallback polling - rely only on SSE for real-time updates
 
   // Save high score
   useEffect(() => {
@@ -108,9 +162,41 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
         )
       );
 
+      // 15% chance to generate special food
+      if (Math.random() < 0.15 && !specialFood) {
+        const specialTypes: ("golden" | "speed" | "bonus")[] = [
+          "golden",
+          "speed",
+          "bonus",
+        ];
+        const randomType = specialTypes[
+          Math.floor(Math.random() * specialTypes.length)
+        ] as "golden" | "speed" | "bonus";
+
+        let specialPos: { x: number; y: number };
+        do {
+          specialPos = {
+            x: Math.floor(Math.random() * BOARD_SIZE.width),
+            y: Math.floor(Math.random() * BOARD_SIZE.height),
+          };
+        } while (
+          snake.some(
+            segment => segment.x === specialPos.x && segment.y === specialPos.y
+          ) ||
+          (specialPos.x === newFood.x && specialPos.y === newFood.y)
+        );
+
+        setSpecialFood({ x: specialPos.x, y: specialPos.y, type: randomType });
+
+        // Remove special food after 8 seconds
+        setTimeout(() => {
+          setSpecialFood(null);
+        }, 8000);
+      }
+
       return newFood;
     },
-    []
+    [specialFood]
   );
 
   const moveSnake = useCallback(() => {
@@ -120,9 +206,21 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
       const head = prev.snake[0];
       if (!head) return prev;
 
+      // Ultra-responsive direction handling: use queue first, then pending, then current
+      let actualDirection = prev.direction;
+
+      if (directionQueue.length > 0 && directionQueue[0]) {
+        actualDirection = directionQueue[0];
+        // Process the direction queue
+        setDirectionQueue(prevQueue => prevQueue.slice(1));
+      } else if (pendingDirection) {
+        actualDirection = pendingDirection;
+        setPendingDirection(null);
+      }
+
       let newHead: { x: number; y: number };
 
-      switch (prev.direction) {
+      switch (actualDirection) {
         case "up":
           newHead = { x: head.x, y: head.y - 1 };
           break;
@@ -164,13 +262,50 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
 
       const newSnake = [newHead, ...prev.snake];
 
-      // Check food collision
+      // Check special food collision
+      if (
+        specialFood &&
+        newHead.x === specialFood.x &&
+        newHead.y === specialFood.y
+      ) {
+        let scoreBonus = 0;
+
+        switch (specialFood.type) {
+          case "golden":
+            scoreBonus = 25; // Golden food gives more points
+            audioService.playSuccess(); // Special sound effect
+            break;
+          case "speed":
+            scoreBonus = 15;
+            setSpeedBoost(true);
+            setPowerUpTimer(150); // 150 game cycles ≈ 18 seconds at 120ms per cycle
+            break;
+          case "bonus":
+            scoreBonus = 20;
+            // Bonus extends snake by 2 segments instead of 1
+            newSnake.push(prev.snake[prev.snake.length - 1] || newHead);
+            break;
+        }
+
+        setSpecialFood(null);
+
+        return {
+          ...prev,
+          snake: newSnake,
+          food: generateFood(newSnake),
+          score: prev.score + scoreBonus,
+          direction: actualDirection,
+        };
+      }
+
+      // Check regular food collision
       if (newHead.x === prev.food.x && newHead.y === prev.food.y) {
         return {
           ...prev,
           snake: newSnake,
           food: generateFood(newSnake),
           score: prev.score + 10,
+          direction: actualDirection,
         };
       }
 
@@ -180,9 +315,17 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
       return {
         ...prev,
         snake: newSnake,
+        direction: actualDirection, // Update direction after successful move
       };
     });
-  }, [gameState.gameOver, isPaused, generateFood]);
+  }, [
+    gameState.gameOver,
+    isPaused,
+    generateFood,
+    pendingDirection,
+    directionQueue,
+    specialFood,
+  ]);
 
   const changeDirection = useCallback(
     (newDirection: "up" | "down" | "left" | "right") => {
@@ -194,14 +337,28 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
         right: "left",
       };
 
-      setGameState(prev => {
-        if (opposites[prev.direction] === newDirection) {
-          return prev; // Don't allow reverse direction
-        }
-        return { ...prev, direction: newDirection };
+      // Get the effective current direction (pending, queued, or actual)
+      const currentDirection =
+        directionQueue.length > 0
+          ? directionQueue[directionQueue.length - 1]
+          : pendingDirection || gameState.direction;
+
+      // Don't allow reverse direction or same direction
+      if (
+        currentDirection &&
+        (opposites[currentDirection] === newDirection ||
+          currentDirection === newDirection)
+      ) {
+        return;
+      }
+
+      // Add to queue for ultra-responsive rapid key handling (max 2 directions in queue)
+      setDirectionQueue(prev => {
+        const newQueue = [...prev, newDirection];
+        return newQueue.slice(-2); // Keep only last 2 directions for responsiveness
       });
     },
-    []
+    [gameState.direction, pendingDirection, directionQueue]
   );
 
   const resetGame = useCallback(() => {
@@ -219,46 +376,60 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
     setGameStarted(true);
     setCollisionPosition(null);
     setCollisionType(null);
+    setPendingDirection(null);
+    setDirectionQueue([]); // Clear direction queue for fresh start
+    setNameInputDisabled(false);
+    setShowEditIcon(false);
+    setSpecialFood(null);
+    setSpeedBoost(false);
+    setPowerUpTimer(0);
   }, []);
 
   const togglePause = useCallback(() => {
     setIsPaused(prev => !prev);
   }, []);
 
-  // Load leaderboard data and recent scores
-  const loadLeaderboard = useCallback(async () => {
-    // Skip in test environment to avoid act warnings
-    if (process.env.NODE_ENV === "test") return;
-
-    try {
-      const topScores = await getTopScores(10);
-      const chronologicalRecent = await getRecentScores(5);
-
-      setLeaderboard(topScores);
-      setRecentScores(chronologicalRecent);
-    } catch {
-      // Silently handle errors
-    }
-  }, []);
-
   // Handle game over and show name input
   const handleGameOver = useCallback(async () => {
     audioService.playGameOver();
 
-    // Add a delay to show the collision animation
+    // Freeze the snake and show collision animation
+    // Don't change game state immediately - let the animation play
     setTimeout(() => {
       setGameStarted(false);
+      setNameInputDisabled(false); // Allow name editing after game over
+      setShowEditIcon(false); // Hide edit icon initially
 
       if (gameState.score > 0) {
         setShowNameInput(true);
       } else {
         setShowLeaderboard(true);
-        loadLeaderboard();
+        // Load leaderboard directly without circular dependency
+        (async () => {
+          if (process.env.NODE_ENV === "test") return;
+          try {
+            const [topScores, chronologicalRecent] = await Promise.all([
+              getTopScores(10),
+              getRecentScores(5),
+            ]);
+            setLeaderboard(topScores);
+            setRecentScores(chronologicalRecent);
+          } catch {
+            // Silently handle errors
+          }
+        })();
       }
-    }, 1500); // 1.5 second delay to show collision
-  }, [gameState.score, loadLeaderboard]);
+    }, 2500); // Longer delay for better game over experience
+  }, [gameState.score]); // Removed loadLeaderboard dependency
 
-  // Submit score to leaderboard
+  // Handle game over
+  useEffect(() => {
+    if (gameState.gameOver && gameStarted) {
+      handleGameOver();
+    }
+  }, [gameState.gameOver, gameStarted, handleGameOver]);
+
+  // Submit score to leaderboard with socket optimization
   const submitScore = useCallback(async () => {
     if (
       playerName.trim() &&
@@ -270,16 +441,29 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
         const success = await addScore(playerName.trim(), gameState.score);
         if (success) {
           audioService.playSuccess();
-          // Load updated leaderboard and player stats
-          await loadLeaderboard();
-          const stats = await getPlayerStats(playerName.trim());
+
+          // Emit new score to realtime service for real-time updates
+          realtimeService.emitNewScore(playerName.trim(), gameState.score);
+
+          // Only load leaderboard once instead of multiple calls
+          const [topScores, stats] = await Promise.all([
+            getTopScores(10),
+            getPlayerStats(playerName.trim()),
+          ]);
 
           React.startTransition(() => {
+            setLeaderboard(topScores);
             setPlayerStats(stats);
           });
 
-          // Update recent scores for real-time display
-          await updateRecentScores();
+          // Update recent scores only if realtime is not handling it
+          if (realtimeService.isFallbackMode()) {
+            await updateRecentScores();
+          }
+
+          // Disable name input and show edit icon
+          setNameInputDisabled(true);
+          setShowEditIcon(true);
         }
       } catch {
         // Silently handle errors
@@ -290,7 +474,7 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
       setShowNameInput(false);
       setShowLeaderboard(true);
     });
-  }, [playerName, gameState.score, loadLeaderboard, updateRecentScores]);
+  }, [playerName, gameState.score, updateRecentScores]);
 
   // Start game with name input
   const startGame = useCallback(() => {
@@ -309,20 +493,51 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
     }
   }, [playerName, resetGame]);
 
-  // Handle game over
-  useEffect(() => {
-    if (gameState.gameOver && gameStarted) {
-      handleGameOver();
-    }
-  }, [gameState.gameOver, gameStarted, handleGameOver]);
+  // Handle name editing functionality
+  const enableNameEdit = useCallback(() => {
+    setNameInputDisabled(false);
+    setShowEditIcon(false);
+  }, []);
 
-  // Game loop
+  const saveNameEdit = useCallback(() => {
+    if (
+      playerName.trim() &&
+      playerName.trim().length >= 2 &&
+      playerName.trim().length <= 20
+    ) {
+      setNameInputDisabled(true);
+      setShowEditIcon(true);
+    }
+  }, [playerName]);
+
+  // Handle power-up timer countdown
+  useEffect(() => {
+    if (powerUpTimer > 0) {
+      const timer = setTimeout(() => {
+        setPowerUpTimer(prev => {
+          if (prev <= 1) {
+            setSpeedBoost(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 100); // Faster countdown for power-ups
+
+      return () => clearTimeout(timer);
+    }
+
+    return () => {}; // Always return a cleanup function
+  }, [powerUpTimer]);
+
+  // Game loop with speed boost - ULTRA OPTIMIZED for buttery-smooth gameplay
   useEffect(() => {
     if (!gameStarted || gameState.gameOver || isPaused) return;
 
-    const gameInterval = setInterval(moveSnake, 120); // Faster game loop for better responsiveness
+    // Ultra-fast refresh rate for maximum responsiveness and smoothness
+    const gameSpeed = speedBoost ? 60 : 100; // Even faster for zero-lag experience
+    const gameInterval = setInterval(moveSnake, gameSpeed);
     return () => clearInterval(gameInterval);
-  }, [moveSnake, gameStarted, gameState.gameOver, isPaused]);
+  }, [moveSnake, gameStarted, gameState.gameOver, isPaused, speedBoost]);
 
   // Keyboard controls
   useEffect(() => {
@@ -421,7 +636,12 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
               type="text"
               value={playerName}
               onChange={e => setPlayerName(e.target.value)}
-              onKeyPress={e => e.key === "Enter" && startGameWithName()}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  startGameWithName();
+                }
+              }}
               placeholder="Your name (2-20 characters)"
               minLength={2}
               maxLength={20}
@@ -465,17 +685,37 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
             Enter your name for the leaderboard:
           </p>
           <div className="mb-4">
-            <input
-              type="text"
-              value={playerName}
-              onChange={e => setPlayerName(e.target.value)}
-              onKeyPress={e => e.key === "Enter" && submitScore()}
-              placeholder="Your name (2-20 characters)"
-              minLength={2}
-              maxLength={20}
-              className="w-64 rounded border border-green-400/40 bg-gray-900 px-4 py-2 text-white focus:border-green-400 focus:outline-none"
-              autoFocus
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={playerName}
+                onChange={e => setPlayerName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    submitScore();
+                  }
+                }}
+                onBlur={saveNameEdit}
+                placeholder="Your name (2-20 characters)"
+                minLength={2}
+                maxLength={20}
+                disabled={nameInputDisabled}
+                className={`w-64 rounded border border-green-400/40 bg-gray-900 px-4 py-2 pr-10 text-white focus:border-green-400 focus:outline-none ${
+                  nameInputDisabled ? "cursor-not-allowed opacity-70" : ""
+                }`}
+                autoFocus={!nameInputDisabled}
+              />
+              {showEditIcon && (
+                <button
+                  onClick={enableNameEdit}
+                  className="absolute top-1/2 right-2 -translate-y-1/2 transform text-blue-400 transition-colors hover:text-blue-300"
+                  title="Edit name"
+                >
+                  ✏️
+                </button>
+              )}
+            </div>
           </div>
           <div className="space-x-4">
             <button
@@ -490,10 +730,22 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
               Submit Score
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 setShowNameInput(false);
                 setShowLeaderboard(true);
-                loadLeaderboard();
+                // Inline leaderboard loading to avoid dependency issues
+                if (process.env.NODE_ENV !== "test") {
+                  try {
+                    const [topScores, chronologicalRecent] = await Promise.all([
+                      getTopScores(10),
+                      getRecentScores(5),
+                    ]);
+                    setLeaderboard(topScores);
+                    setRecentScores(chronologicalRecent);
+                  } catch {
+                    // Silently handle errors
+                  }
+                }
               }}
               className="rounded bg-gray-600 px-6 py-2 font-medium text-white transition-colors hover:bg-gray-500"
             >
@@ -565,72 +817,64 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
       {/* Game Screen */}
       {gameStarted && (
         <>
-          {/* Real-time Competitive Recent Scores Display */}
+          {/* Simple Recent Scores Display */}
           {recentScores.length > 0 && (
             <div className="absolute top-4 right-4 min-w-[200px] rounded border border-purple-400/40 bg-purple-400/10 p-3 text-xs backdrop-blur-sm">
               <h4 className="mb-2 font-bold text-purple-400">Recent Scores</h4>
               <div className="space-y-1">
-                {recentScores.slice(0, 3).map((entry, index) => {
-                  const isCurrentPlayer =
-                    playerName && entry.playerName === playerName.trim();
-                  const shouldHighlight =
-                    isCurrentPlayer ||
-                    (gameStarted &&
-                      !gameState.gameOver &&
-                      gameState.score > entry.score);
+                {recentScores
+                  .sort((a, b) => b.score - a.score) // Sort by score descending
+                  .slice(0, 5)
+                  .map((entry, index) => {
+                    const isCurrentPlayer =
+                      playerName && entry.playerName === playerName.trim();
 
-                  return (
-                    <div
-                      key={`recent-${entry.playerName}-${entry.timestamp}-${index}`}
-                      className={`flex items-center justify-between rounded p-1 transition-all duration-300 ${
-                        isCurrentPlayer
-                          ? "scale-105 transform border border-blue-400/50 bg-blue-500/20"
-                          : shouldHighlight
-                            ? "border border-yellow-400/30 bg-yellow-500/10"
-                            : "hover:bg-white/5"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-1">
-                        <span
-                          className={`text-xs ${
-                            isCurrentPlayer ? "text-blue-400" : "text-gray-400"
-                          }`}
-                        >
-                          #{index + 1}
-                        </span>
-                        <span
-                          className={`mr-2 truncate ${
-                            isCurrentPlayer
-                              ? "font-bold text-blue-300"
-                              : "text-white"
-                          }`}
-                          title={entry.playerName}
-                        >
-                          {entry.playerName.length > 8
-                            ? entry.playerName.substring(0, 8) + "..."
-                            : entry.playerName}
-                        </span>
-                      </div>
-                      <span
-                        className={`font-mono ${
+                    return (
+                      <div
+                        key={`recent-${entry.playerName}-${entry.timestamp}-${index}`}
+                        className={`flex items-center justify-between rounded p-1 ${
                           isCurrentPlayer
-                            ? "font-bold text-blue-400"
-                            : "text-green-400"
+                            ? "border border-blue-400/50 bg-blue-500/20"
+                            : "hover:bg-white/5"
                         }`}
                       >
-                        {entry.score}
-                      </span>
-                    </div>
-                  );
-                })}
+                        <div className="flex items-center space-x-1">
+                          <span className="text-xs text-gray-400">
+                            #{index + 1}
+                          </span>
+                          <span
+                            className={`mr-2 truncate ${
+                              isCurrentPlayer
+                                ? "font-bold text-blue-300"
+                                : "text-white"
+                            }`}
+                            title={entry.playerName}
+                          >
+                            {entry.playerName.length > 8
+                              ? entry.playerName.substring(0, 8) + "..."
+                              : entry.playerName}
+                          </span>
+                        </div>
+                        <span
+                          className={`font-mono ${
+                            isCurrentPlayer
+                              ? "font-bold text-blue-400"
+                              : "text-green-400"
+                          }`}
+                        >
+                          {entry.score}
+                        </span>
+                      </div>
+                    );
+                  })}
 
-                {/* Show current player's live score if they're playing and would be in top recent */}
+                {/* Show current player's live score if they're playing */}
                 {gameStarted &&
                   !gameState.gameOver &&
                   playerName &&
                   gameState.score > 0 && (
                     <div className="mt-2 border-t border-purple-400/30 pt-2">
-                      <div className="flex scale-105 transform animate-pulse items-center justify-between rounded border border-green-400/50 bg-green-500/20 p-1">
+                      <div className="flex items-center justify-between rounded border border-green-400/50 bg-green-500/20 p-1">
                         <div className="flex items-center space-x-1">
                           <span className="text-xs text-green-400">🎮</span>
                           <span
@@ -660,6 +904,11 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
             <div className="flex justify-center space-x-6 text-sm">
               <span className="text-green-400">Score: {gameState.score}</span>
               <span className="text-yellow-400">High Score: {highScore}</span>
+              {speedBoost && (
+                <span className="animate-pulse font-bold text-blue-400">
+                  ⚡ SPEED BOOST! ({Math.ceil(powerUpTimer / 8)}s)
+                </span>
+              )}
               {playerName && (
                 <span className="text-blue-400">Player: {playerName}</span>
               )}
@@ -689,33 +938,54 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
                     gameState.snake[0]?.x === x && gameState.snake[0]?.y === y;
                   const isFood =
                     gameState.food.x === x && gameState.food.y === y;
+                  const isSpecialFood =
+                    specialFood && specialFood.x === x && specialFood.y === y;
                   const isCollision =
                     collisionPosition &&
                     collisionPosition.x === x &&
                     collisionPosition.y === y;
 
-                  return (
-                    <div
-                      key={index}
-                      className={`h-full w-full border border-gray-700 ${
-                        isCollision && gameState.gameOver
-                          ? collisionType === "wall"
-                            ? "animate-pulse bg-red-600 shadow-lg shadow-red-500/50"
-                            : "animate-pulse bg-orange-600 shadow-lg shadow-orange-500/50"
-                          : isFood
-                            ? "bg-red-400"
-                            : isHead && gameState.gameOver
-                              ? "animate-pulse bg-red-500"
-                              : isHead
-                                ? "bg-green-300"
-                                : isSnake
-                                  ? gameState.gameOver
-                                    ? "bg-red-400/80"
-                                    : "bg-green-400"
-                                  : "bg-gray-800"
-                      }`}
-                    />
-                  );
+                  let cellClass = "h-full w-full border border-gray-700 ";
+
+                  if (isCollision && gameState.gameOver) {
+                    cellClass +=
+                      collisionType === "wall"
+                        ? "animate-pulse bg-red-600 shadow-lg shadow-red-500/50"
+                        : "animate-pulse bg-orange-600 shadow-lg shadow-orange-500/50";
+                  } else if (isSpecialFood) {
+                    switch (specialFood?.type) {
+                      case "golden":
+                        cellClass +=
+                          "bg-yellow-400 animate-pulse shadow-lg shadow-yellow-400/50";
+                        break;
+                      case "speed":
+                        cellClass +=
+                          "bg-blue-400 animate-bounce shadow-lg shadow-blue-400/50";
+                        break;
+                      case "bonus":
+                        cellClass +=
+                          "bg-purple-400 animate-spin shadow-lg shadow-purple-400/50";
+                        break;
+                    }
+                  } else if (isFood) {
+                    cellClass += "bg-red-400";
+                  } else if (isHead && gameState.gameOver) {
+                    cellClass += "animate-pulse bg-red-500";
+                  } else if (isHead) {
+                    cellClass += speedBoost
+                      ? "bg-blue-300 animate-pulse"
+                      : "bg-green-300";
+                  } else if (isSnake) {
+                    cellClass += gameState.gameOver
+                      ? "bg-red-400/80"
+                      : speedBoost
+                        ? "bg-blue-400"
+                        : "bg-green-400";
+                  } else {
+                    cellClass += "bg-gray-800";
+                  }
+
+                  return <div key={index} className={cellClass} />;
                 }
               )}
             </div>
@@ -732,26 +1002,48 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
               </div>
             )}
 
-            {/* Game Over Overlay */}
+            {/* Enhanced Game Over Overlay */}
             {gameState.gameOver && gameStarted && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/90">
-                <div className="animate-pulse text-center">
-                  <div className="mb-2 text-2xl font-bold text-red-400">
-                    💥 GAME OVER!
+              <>
+                {/* Game Over text above snake head */}
+                {gameState.snake[0] && (
+                  <div
+                    className="absolute z-10 animate-bounce text-center"
+                    style={{
+                      left: `${(gameState.snake[0].x / BOARD_SIZE.width) * 100}%`,
+                      top: `${(gameState.snake[0].y / BOARD_SIZE.height) * 100 - 15}%`,
+                      transform: "translateX(-50%)",
+                    }}
+                  >
+                    <div className="text-lg font-bold text-red-400 drop-shadow-lg">
+                      💀 GAME OVER!
+                    </div>
                   </div>
-                  <div className="mb-2 text-lg text-white">
-                    Score: {gameState.score}
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    {collisionType === "wall"
-                      ? "Hit the wall!"
-                      : "Snake ate itself!"}
-                  </div>
-                  <div className="mt-3 text-xs text-gray-500">
-                    Submitting score...
+                )}
+
+                {/* Full overlay with details */}
+                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/70">
+                  <div className="text-center">
+                    <div className="mb-4 animate-pulse text-3xl font-bold text-red-400">
+                      ☠️ GAME OVER! ☠️
+                    </div>
+                    <div className="mb-2 text-xl text-white">
+                      Final Score:{" "}
+                      <span className="font-bold text-green-400">
+                        {gameState.score}
+                      </span>
+                    </div>
+                    <div className="mb-4 text-sm text-gray-400">
+                      {collisionType === "wall"
+                        ? "🧱 Crashed into the wall!"
+                        : "🐍 Snake ate itself!"}
+                    </div>
+                    <div className="animate-pulse text-sm text-yellow-400">
+                      Processing your score...
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
 
@@ -761,6 +1053,11 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
               <div className="text-sm text-gray-400">
                 <div>Use WASD or Arrow keys to move</div>
                 <div>SPACE to pause • Q/ESC to quit • R to restart</div>
+                <div className="mt-2 text-xs">
+                  <span className="text-yellow-400">🌟 +25pts</span> •{" "}
+                  <span className="text-blue-400">⚡ Speed</span> •{" "}
+                  <span className="text-purple-400">💎 +Growth</span>
+                </div>
               </div>
             ) : (
               <div className="mt-4 grid grid-cols-3 gap-2">
@@ -823,9 +1120,21 @@ const SnakeGameComponent: React.FC<SnakeGameComponentProps> = ({
               Start Game
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 setShowLeaderboard(true);
-                loadLeaderboard();
+                // Inline leaderboard loading to avoid dependency issues
+                if (process.env.NODE_ENV !== "test") {
+                  try {
+                    const [topScores, chronologicalRecent] = await Promise.all([
+                      getTopScores(10),
+                      getRecentScores(5),
+                    ]);
+                    setLeaderboard(topScores);
+                    setRecentScores(chronologicalRecent);
+                  } catch {
+                    // Silently handle errors
+                  }
+                }
               }}
               className="rounded bg-blue-400 px-6 py-2 font-medium text-black transition-colors hover:bg-blue-300"
             >
