@@ -1,39 +1,77 @@
 @import "tailwindcss";
 
+/* Import xterm styles */
+@import '@xterm/xterm/css/xterm.css';
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.2);
-  --glass-shadow: rgba(0, 0, 0, 0.1);
-  --glass-card-bg: rgba(255, 255, 255, 0.5);
-  --glass-card-border: rgba(255, 255, 255, 0.1);
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --glass-bg: rgba(15, 15, 15, 0.8);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-shadow: rgba(0, 0, 0, 0.3);
-    --glass-card-bg: rgba(25, 25, 25, 0.65);
-    --glass-card-border: rgba(255, 255, 255, 0.08);
-  }
+  --background: #0a0a0a;
+  --foreground: #00ff00;
+  --glass-bg: rgba(15, 15, 15, 0.8);
+  --glass-border: rgba(0, 255, 0, 0.2);
+  --glass-shadow: rgba(0, 255, 0, 0.1);
+  --glass-card-bg: rgba(25, 25, 25, 0.65);
+  --glass-card-border: rgba(0, 255, 0, 0.08);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Matrix rain effect background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(0, 255, 0, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 255, 0, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(0, 255, 0, 0.04) 0%, transparent 50%);
+  z-index: -1;
+}
+
+/* Terminal scrollbar styling */
+.xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: #00ff00 #000000;
+}
+
+.xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+}
+
+.xterm-viewport::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb {
+  background: #00ff00;
+  border-radius: 4px;
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: #00cc00;
+}
+
+/* Fix emoji rendering in terminal */
+.xterm .xterm-screen {
+  font-variant-emoji: emoji;
+}
+
+.xterm-char-measure-element {
+  font-variant-emoji: emoji;
+}
+
+/* Ensure proper emoji width */
+.xterm .xterm-rows {
+  font-feature-settings: "liga" 0;
+  font-variant-emoji: emoji;
 }
 
 /* Animation keyframes */
@@ -42,127 +80,86 @@ body {
   to { opacity: 1; }
 }
 
-@keyframes scaleIn {
+@keyframes slideInLeft {
   from { 
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateX(-50px);
   }
   to { 
     opacity: 1;
-    transform: scale(1);
+    transform: translateX(0);
   }
 }
 
-@keyframes checkmark {
-  0% {
-    transform: scale(0);
+@keyframes slideInRight {
+  from { 
     opacity: 0;
+    transform: translateX(50px);
   }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
+  to { 
     opacity: 1;
+    transform: translateX(0);
   }
 }
 
-@keyframes floatAnimation {
-  0% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-  100% {
-    transform: translateY(0);
-  }
+@keyframes terminalBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
-@keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+@keyframes matrixRain {
+  0% { transform: translateY(-100vh); }
+  100% { transform: translateY(100vh); }
 }
 
-/* Animation classes */
-main {
-  animation: fadeIn 0.8s ease-in;
+/* Terminal cursor animation */
+.terminal-cursor {
+  animation: terminalBlink 1s infinite;
 }
 
+/* Layout animations */
 .animate-fadeIn {
-  animation: fadeIn 0.25s ease-out forwards;
+  animation: fadeIn 0.8s ease-out forwards;
 }
 
-.animate-scaleIn {
-  animation: scaleIn 0.25s ease-out forwards;
+.animate-slideInLeft {
+  animation: slideInLeft 1s ease-out forwards;
 }
 
-.animate-checkmark {
-  animation: checkmark 0.3s ease-out forwards;
+.animate-slideInRight {
+  animation: slideInRight 1s ease-out forwards;
 }
 
-.animate-float {
-  animation: floatAnimation 5s ease-in-out infinite;
-}
-
-/* Gradient text */
-.gradient-text {
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  background-image: linear-gradient(90deg, #3b82f6, #ec4899, #3b82f6);
-  background-size: 200% auto;
-  animation: gradient 8s linear infinite;
-}
-
-/* Glass morphism */
-.glass-effect {
-  backdrop-filter: blur(8px);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.dark .glass-effect {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* Enhanced glass morphism for popup */
-.glass-morphism {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px var(--glass-shadow);
-}
-
-/* Glass card for inner elements */
+/* Glass effects for terminal theme */
 .glass-card {
   background: var(--glass-card-bg);
   border: 1px solid var(--glass-card-border);
   box-shadow: 0 4px 12px var(--glass-shadow);
 }
 
-/* Dark mode specific enhancements */
-@media (prefers-color-scheme: dark) {
-  .glass-card {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  }
-  
-  /* Subtle glow for interactive elements in dark mode */
-  .interactive-glow:hover {
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-  }
-  
-  /* Improved contrast for text on glass backgrounds */
-  .glass-card h4, .glass-morphism h3 {
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  }
+/* Terminal theme specific styles */
+.terminal-glow {
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+}
+
+.matrix-bg {
+  background: linear-gradient(45deg, #001100, #002200);
+}
+
+/* Non-selectable text for UI components */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Apply non-selectable to specific UI components */
+.navbar-content,
+.footer-content,
+.card-content {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
