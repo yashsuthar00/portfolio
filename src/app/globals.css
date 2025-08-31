@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Import xterm styles */
 @import '@xterm/xterm/css/xterm.css';
@@ -37,10 +37,22 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
-    radial-gradient(circle at 20% 50%, rgba(0, 255, 0, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(0, 255, 0, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, rgba(0, 255, 0, 0.04) 0%, transparent 50%);
+  background:
+    radial-gradient(
+      circle at 20% 50%,
+      rgba(0, 255, 0, 0.05) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(0, 255, 0, 0.03) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 40% 80%,
+      rgba(0, 255, 0, 0.04) 0%,
+      transparent 50%
+    );
   z-index: -1;
 }
 
@@ -84,62 +96,81 @@ body::before {
 
 /* Ensure proper emoji width */
 .xterm .xterm-rows {
-  font-feature-settings: "liga" 0;
+  font-feature-settings: 'liga' 0;
   font-variant-emoji: emoji;
 }
 
 /* Animation keyframes */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideInLeft {
-  from { 
+  from {
     opacity: 0;
     transform: translateX(-50px);
   }
-  to { 
+  to {
     opacity: 1;
     transform: translateX(0);
   }
 }
 
 @keyframes slideInRight {
-  from { 
+  from {
     opacity: 0;
     transform: translateX(50px);
   }
-  to { 
+  to {
     opacity: 1;
     transform: translateX(0);
   }
 }
 
 @keyframes slideInUp {
-  from { 
+  from {
     opacity: 0;
     transform: translateY(50px);
   }
-  to { 
+  to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
 @keyframes terminalBlink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes matrixRain {
-  0% { transform: translateY(-100vh); }
-  100% { transform: translateY(100vh); }
+  0% {
+    transform: translateY(-100vh);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Terminal cursor animation */
@@ -218,11 +249,11 @@ body::before {
   body {
     font-size: 14px;
   }
-  
+
   .xterm-viewport {
     scrollbar-width: thin;
   }
-  
+
   /* Full screen terminal on mobile */
   .mobile-terminal-fullscreen {
     height: calc(100vh - 128px) !important;
@@ -232,7 +263,7 @@ body::before {
     border-radius: 0 !important;
     border: none !important;
   }
-  
+
   /* Remove padding from mobile terminal content */
   .mobile-terminal-fullscreen > div {
     padding: 0.5rem !important;
@@ -264,7 +295,8 @@ body::before {
 
 /* Improved button focus for mobile */
 @media (max-width: 767px) {
-  button, a {
+  button,
+  a {
     min-height: 44px;
     min-width: 44px;
   }

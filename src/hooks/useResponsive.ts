@@ -23,7 +23,7 @@ export const useResponsive = (): ResponsiveState => {
     const updateState = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      
+
       setState({
         isMobile: width < 768,
         isTablet: width >= 768 && width < 1024,

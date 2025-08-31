@@ -1,29 +1,33 @@
-import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import "@xterm/xterm/css/xterm.css";
-import { Analytics } from "@vercel/analytics/next"
+import type { Metadata, Viewport } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import './globals.css';
+import '@xterm/xterm/css/xterm.css';
+import { Analytics } from '@vercel/analytics/next';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "Yash Suthar | Portfolio",
-  description: "Personal portfolio website of Yash Suthar - Coming Soon",
+  title: 'Yash Suthar | Portfolio',
+  description: 'Personal portfolio website of Yash Suthar - Coming Soon',
   icons: {
     icon: [
       { url: '/favicon/favicon.ico' },
       { url: '/favicon/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/favicon/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
     ],
-    apple: { url: '/favicon/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    apple: {
+      url: '/favicon/apple-touch-icon.png',
+      sizes: '180x180',
+      type: 'image/png',
+    },
     other: [
       {
         rel: 'mask-icon',
@@ -56,7 +60,9 @@ export default function RootLayout({
       console.error = (...args) => {
         if (
           typeof args[0] === 'string' &&
-          args[0].includes('Hydration failed because the initial UI does not match what was rendered on the server')
+          args[0].includes(
+            'Hydration failed because the initial UI does not match what was rendered on the server'
+          )
         ) {
           // Ignore this specific hydration error
           return;
@@ -67,7 +73,7 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang='en' suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning

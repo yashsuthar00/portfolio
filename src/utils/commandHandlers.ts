@@ -5,19 +5,34 @@ export interface TerminalWriter {
   clear: () => void;
 }
 
-export const writeColoredText = (terminal: TerminalWriter, text: string, color = '\x1b[37m') => {
+export const writeColoredText = (
+  terminal: TerminalWriter,
+  text: string,
+  color = '\x1b[37m'
+) => {
   terminal.write(`${color}${text}\x1b[0m`);
 };
 
-export const writeLine = (terminal: TerminalWriter, text: string, color = '\x1b[37m') => {
+export const writeLine = (
+  terminal: TerminalWriter,
+  text: string,
+  color = '\x1b[37m'
+) => {
   writeColoredText(terminal, text + '\r\n', color);
 };
 
-export const writeSeparator = (terminal: TerminalWriter, char = '━', length = 20) => {
+export const writeSeparator = (
+  terminal: TerminalWriter,
+  char = '━',
+  length = 20
+) => {
   writeLine(terminal, char.repeat(length));
 };
 
-export const handleHelpCommand = (terminal: TerminalWriter, isMobile = false) => {
+export const handleHelpCommand = (
+  terminal: TerminalWriter,
+  isMobile = false
+) => {
   writeLine(terminal, 'Available commands:');
   writeLine(terminal, '  help     - Show this help message');
   writeLine(terminal, '  about    - Learn more about me');
@@ -25,14 +40,14 @@ export const handleHelpCommand = (terminal: TerminalWriter, isMobile = false) =>
   writeLine(terminal, '  projects - See my latest projects');
   writeLine(terminal, '  contact  - Get in touch');
   writeLine(terminal, '  social   - View social media commands');
-  
+
   if (!isMobile) {
     writeLine(terminal, '  github   - Open GitHub profile');
     writeLine(terminal, '  linkedin - Open LinkedIn profile');
     writeLine(terminal, '  leetcode - Open LeetCode profile');
     writeLine(terminal, '  codeforces - Open CodeForces profile');
   }
-  
+
   writeLine(terminal, '  resume   - Download my resume');
   writeLine(terminal, '  clear    - Clear the terminal');
   writeLine(terminal, '  exit     - Shutdown terminal session');
@@ -51,7 +66,7 @@ export const handleAboutCommand = (terminal: TerminalWriter) => {
 export const handleSkillsCommand = (terminal: TerminalWriter) => {
   writeLine(terminal, 'Technical Skills:');
   writeSeparator(terminal);
-  
+
   portfolioData.skills.forEach(category => {
     writeLine(terminal, `${category.name}:`);
     category.skills.forEach(skill => {
@@ -64,7 +79,7 @@ export const handleSkillsCommand = (terminal: TerminalWriter) => {
 export const handleProjectsCommand = (terminal: TerminalWriter) => {
   writeLine(terminal, 'Recent Projects:');
   writeSeparator(terminal);
-  
+
   portfolioData.projects.forEach(project => {
     writeLine(terminal, `🚀 ${project.title}`);
     writeLine(terminal, `   • ${project.description}`);
@@ -89,16 +104,22 @@ export const handleSocialCommand = (terminal: TerminalWriter) => {
   writeSeparator(terminal, '━', 23);
   writeLine(terminal, 'Use these commands to quickly access my profiles:');
   writeLine(terminal, '');
-  
+
   portfolioData.social.forEach(social => {
-    writeLine(terminal, `${social.icon} ${social.command.padEnd(10)} - Open ${social.name} profile`);
+    writeLine(
+      terminal,
+      `${social.icon} ${social.command.padEnd(10)} - Open ${social.name} profile`
+    );
   });
-  
+
   writeLine(terminal, '');
   writeLine(terminal, 'Just type any of these commands to visit the profile!');
 };
 
-export const handleSocialLinkCommand = (terminal: TerminalWriter, command: string) => {
+export const handleSocialLinkCommand = (
+  terminal: TerminalWriter,
+  command: string
+) => {
   const social = portfolioData.social.find(s => s.command === command);
   if (social) {
     writeLine(terminal, `${social.icon} Opening ${social.name} profile...`);
@@ -111,7 +132,7 @@ export const handleSocialLinkCommand = (terminal: TerminalWriter, command: strin
 export const handleResumeCommand = (terminal: TerminalWriter) => {
   writeLine(terminal, '📄 Downloading resume...');
   writeSeparator(terminal, '━', 24);
-  
+
   try {
     const link = document.createElement('a');
     link.href = '/resume/cv.pdf';
@@ -120,11 +141,18 @@ export const handleResumeCommand = (terminal: TerminalWriter) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     writeLine(terminal, '✅ Resume downloaded successfully!');
-    writeLine(terminal, '📁 Check your Downloads folder for "Yash_Suthar_Resume.pdf"');
+    writeLine(
+      terminal,
+      '📁 Check your Downloads folder for "Yash_Suthar_Resume.pdf"'
+    );
   } catch {
-    writeLine(terminal, '❌ Error downloading resume. Please try again.', '\x1b[31m');
+    writeLine(
+      terminal,
+      '❌ Error downloading resume. Please try again.',
+      '\x1b[31m'
+    );
   }
 };
 
@@ -149,7 +177,7 @@ export const getWelcomeMessage = (isMobile = false): string[] => {
       '',
     ];
   }
-  
+
   return [
     '╔══════════════════════════════════════════════════════════╗',
     '║                    Welcome to Portfolio                 ║',

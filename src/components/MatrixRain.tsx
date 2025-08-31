@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useEffect, useRef } from 'react';
 
@@ -65,7 +65,7 @@ const MatrixRain = () => {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 z-0 opacity-20"
+      className='fixed inset-0 z-0 opacity-20'
       style={{ pointerEvents: 'none' }}
     />
   );

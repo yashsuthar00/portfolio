@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useResponsive } from '@/hooks';
@@ -10,7 +10,7 @@ const Footer = () => {
 
   useEffect(() => {
     const updateTime = () => {
-      const options: Intl.DateTimeFormatOptions = isMobile 
+      const options: Intl.DateTimeFormatOptions = isMobile
         ? {
             hour: '2-digit',
             minute: '2-digit',
@@ -29,76 +29,74 @@ const Footer = () => {
 
       setTime(new Date().toLocaleString(undefined, options));
     };
-    
+
     updateTime(); // Initial call
     const interval = setInterval(updateTime, 1000);
-    
+
     return () => clearInterval(interval);
   }, [isMobile]);
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-black/10 border-t border-green-500/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 sm:py-3 footer-content">
+    <footer className='fixed right-0 bottom-0 left-0 z-50 border-t border-green-500/20 bg-black/10 backdrop-blur-md'>
+      <div className='footer-content mx-auto max-w-7xl px-4 py-2 sm:px-6 sm:py-3'>
         {isMobile ? (
           // Mobile: Just prompt and time
-          <div className="flex items-center justify-between">
-            <span className="text-green-400 font-mono text-xs">
+          <div className='flex items-center justify-between'>
+            <span className='font-mono text-xs text-green-400'>
               [yash@portfolio ~]$
             </span>
-            <span className="text-green-300 font-mono text-xs">
-              {time}
-            </span>
+            <span className='font-mono text-xs text-green-300'>{time}</span>
           </div>
         ) : (
           // Desktop/Tablet: Full footer
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <span className="text-green-400 font-mono text-xs sm:text-sm">
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center space-x-2 sm:space-x-4'>
+              <span className='font-mono text-xs text-green-400 sm:text-sm'>
                 [yash@portfolio ~]$
               </span>
-              <span className="text-green-300 font-mono text-xs sm:text-sm">
-                <span className="animate-pulse inline-block w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-400 mr-1 sm:mr-2" />
+              <span className='font-mono text-xs text-green-300 sm:text-sm'>
+                <span className='mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-green-400 sm:mr-2 sm:h-2 sm:w-2' />
                 connected
               </span>
-              <span className="text-green-300 font-mono text-xs sm:text-sm">
+              <span className='font-mono text-xs text-green-300 sm:text-sm'>
                 {time}
               </span>
             </div>
-            
-            <div className="flex items-center space-x-2 sm:space-x-4">
+
+            <div className='flex items-center space-x-2 sm:space-x-4'>
               {isTablet ? (
                 // Tablet: Show main links only
                 <>
-                  {portfolioData.social.slice(0, 2).map((social) => (
+                  {portfolioData.social.slice(0, 2).map(social => (
                     <a
                       key={social.command}
                       href={social.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-green-300 hover:text-green-400 font-mono text-sm transition-colors duration-200"
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='font-mono text-sm text-green-300 transition-colors duration-200 hover:text-green-400'
                     >
                       {social.command}
                     </a>
                   ))}
-                  <span className="text-green-400 font-mono text-sm">
+                  <span className='font-mono text-sm text-green-400'>
                     © {new Date().getFullYear()}
                   </span>
                 </>
               ) : (
                 // Desktop: Show all links
                 <>
-                  {portfolioData.social.map((social) => (
+                  {portfolioData.social.map(social => (
                     <a
                       key={social.command}
                       href={social.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-green-300 hover:text-green-400 font-mono text-sm transition-colors duration-200"
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='font-mono text-sm text-green-300 transition-colors duration-200 hover:text-green-400'
                     >
                       {social.command}
                     </a>
                   ))}
-                  <span className="text-green-400 font-mono text-sm">
+                  <span className='font-mono text-sm text-green-400'>
                     © {new Date().getFullYear()}
                   </span>
                 </>

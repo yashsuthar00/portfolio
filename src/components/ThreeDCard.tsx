@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -22,11 +22,11 @@ function Scene() {
 
   return (
     <>
-      <Environment preset="night" />
+      <Environment preset='night' />
       <ambientLight intensity={0.3} />
-      <pointLight position={[10, 10, 10]} intensity={1} color="#00ff00" />
-      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#0080ff" />
-      
+      <pointLight position={[10, 10, 10]} intensity={1} color='#00ff00' />
+      <pointLight position={[-10, -10, -10]} intensity={0.5} color='#0080ff' />
+
       <Box
         ref={meshRef}
         args={[2, 2, 2]}
@@ -35,16 +35,16 @@ function Scene() {
         onPointerOut={() => setHovered(false)}
         scale={hovered ? 1.1 : 1}
       >
-        <meshPhongMaterial 
-          color={hovered ? "#00ff00" : "#003300"} 
+        <meshPhongMaterial
+          color={hovered ? '#00ff00' : '#003300'}
           wireframe={true}
           transparent={true}
           opacity={0.8}
         />
       </Box>
-      
-      <OrbitControls 
-        enableZoom={false} 
+
+      <OrbitControls
+        enableZoom={false}
         enablePan={false}
         autoRotate
         autoRotateSpeed={2}
@@ -55,7 +55,7 @@ function Scene() {
 
 const ThreeDCard = () => {
   const { isMobile, isTablet } = useResponsive();
-  
+
   const getFontSize = () => {
     if (isMobile) return 'text-base';
     if (isTablet) return 'text-lg';
@@ -69,36 +69,45 @@ const ThreeDCard = () => {
   };
 
   return (
-    <motion.div 
-      className="w-full h-full bg-black/20 backdrop-blur-sm border border-green-500/30 rounded-lg overflow-hidden relative"
+    <motion.div
+      className='relative h-full w-full overflow-hidden rounded-lg border border-green-500/30 bg-black/20 backdrop-blur-sm'
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 1, delay: 0.2 }}
     >
-      <div className="h-full w-full">
-        <Canvas 
-          camera={{ 
-            position: [0, 0, isMobile ? 6 : 8], 
-            fov: isMobile ? 50 : 45 
+      <div className='h-full w-full'>
+        <Canvas
+          camera={{
+            position: [0, 0, isMobile ? 6 : 8],
+            fov: isMobile ? 50 : 45,
           }}
         >
           <Scene />
         </Canvas>
       </div>
-      
+
       {/* Overlay content */}
-      <div className={`absolute ${isMobile ? 'bottom-2 left-2 right-2' : 'bottom-4 left-4 right-4'}`}>
-        <div className={`bg-black/50 backdrop-blur-sm border border-green-500/50 rounded ${getPadding()}`}>
-          <h3 className={`text-green-400 font-mono ${getFontSize()} mb-2`}>$ whoami</h3>
-          <p className={`text-green-300 font-mono ${isMobile ? 'text-sm' : 'text-sm'} leading-relaxed`}>
-            {isMobile 
-              ? "Passionate developer crafting digital experiences." 
-              : portfolioData.description
-            }
+      <div
+        className={`absolute ${isMobile ? 'right-2 bottom-2 left-2' : 'right-4 bottom-4 left-4'}`}
+      >
+        <div
+          className={`rounded border border-green-500/50 bg-black/50 backdrop-blur-sm ${getPadding()}`}
+        >
+          <h3 className={`font-mono text-green-400 ${getFontSize()} mb-2`}>
+            $ whoami
+          </h3>
+          <p
+            className={`font-mono text-green-300 ${isMobile ? 'text-sm' : 'text-sm'} leading-relaxed`}
+          >
+            {isMobile
+              ? 'Passionate developer crafting digital experiences.'
+              : portfolioData.description}
           </p>
           {!isMobile && (
-            <div className="mt-2 text-green-400 font-mono text-xs">
-              <span>Specialized in React, Node.js, and cloud architecture.</span>
+            <div className='mt-2 font-mono text-xs text-green-400'>
+              <span>
+                Specialized in React, Node.js, and cloud architecture.
+              </span>
             </div>
           )}
         </div>
