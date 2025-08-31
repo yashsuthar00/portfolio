@@ -11,7 +11,7 @@ export interface ResponsiveState {
 
 export const useResponsive = (): ResponsiveState => {
   const [state, setState] = useState<ResponsiveState>({
-    isMobile: false,
+    isMobile: true,
     isTablet: false,
     isDesktop: false,
     isLarge: false,

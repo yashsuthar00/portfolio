@@ -280,13 +280,20 @@ const TerminalComponent = () => {
         });
 
         const handleResize = () => {
-          if (fitAddon.current) {
-            fitAddon.current.fit();
+          if (fitAddon.current && terminal.current) {
+            try {
+              fitAddon.current.fit();
+            } catch (error) {
+              console.warn('Terminal resize failed:', error);
+            }
           }
         };
 
         window.addEventListener('resize', handleResize);
+        // Initial fit with multiple attempts to ensure proper sizing
         setTimeout(handleResize, 100);
+        setTimeout(handleResize, 300);
+        setTimeout(handleResize, 500);
 
         return () => {
           window.removeEventListener('resize', handleResize);
@@ -304,7 +311,9 @@ const TerminalComponent = () => {
 
   if (!isMounted) {
     return (
-      <div className="w-full h-full bg-black border border-green-500/50 rounded-lg overflow-hidden flex items-center justify-center">
+      <div className={`w-full h-full bg-black overflow-hidden flex items-center justify-center ${
+        isMobile ? '' : 'border border-green-500/50 rounded-lg'
+      }`}>
         <div className="text-green-400 font-mono text-sm">Loading terminal...</div>
       </div>
     );
@@ -312,26 +321,25 @@ const TerminalComponent = () => {
 
   return (
     <motion.div 
-      className={`w-full h-full bg-black border border-green-500/50 rounded-lg overflow-hidden ${isMobile ? 'mobile-terminal-fullscreen' : ''}`}
+      className={`w-full h-full bg-black overflow-hidden ${
+        isMobile 
+          ? 'mobile-terminal-fullscreen' 
+          : 'border border-green-500/50 rounded-lg'
+      }`}
       initial={{ opacity: 0, x: isMobile ? 0 : 50 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 1, delay: isMobile ? 0.2 : 0.4 }}
     >
-      {/* Terminal Header */}
-      <div className="bg-gray-800 border-b border-green-500/30 px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between">
-        <div className="flex items-center space-x-1.5 sm:space-x-2">
-          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-          <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
-        </div>
-        <span className="text-green-400 font-mono text-xs sm:text-sm">yash@portfolio:~</span>
-      </div>
-
-      {/* Terminal Content */}
+      {/* Terminal Content - No Header */}
       <div 
         ref={terminalRef} 
-        className="w-full h-[calc(100%-32px)] sm:h-[calc(100%-40px)] p-1.5 sm:p-2"
-        style={{ minHeight: isMobile ? '250px' : '400px' }}
+        className={`w-full h-full overflow-hidden ${
+          isMobile ? 'p-2' : 'p-1.5 sm:p-2'
+        }`}
+        style={{ 
+          minHeight: isMobile ? '250px' : '400px',
+          maxHeight: '100%'
+        }}
       />
     </motion.div>
   );

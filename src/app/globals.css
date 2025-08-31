@@ -25,6 +25,8 @@ body {
   overflow-x: hidden;
   margin: 0;
   padding: 0;
+  height: 100vh;
+  max-height: 100vh;
 }
 
 /* Matrix rain effect background */
@@ -178,6 +180,22 @@ body::before {
   background: linear-gradient(45deg, #001100, #002200);
 }
 
+/* Prevent terminal overflow and ensure proper containment */
+.xterm {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+.xterm .xterm-viewport {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+.xterm .xterm-screen {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
 /* Non-selectable text for UI components */
 .no-select {
   -webkit-user-select: none;
@@ -207,8 +225,17 @@ body::before {
   
   /* Full screen terminal on mobile */
   .mobile-terminal-fullscreen {
-    height: calc(100vh - 120px) !important;
-    min-height: calc(100vh - 120px) !important;
+    height: calc(100vh - 128px) !important;
+    min-height: calc(100vh - 128px) !important;
+    max-height: calc(100vh - 128px) !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+  
+  /* Remove padding from mobile terminal content */
+  .mobile-terminal-fullscreen > div {
+    padding: 0.5rem !important;
   }
 }
 
