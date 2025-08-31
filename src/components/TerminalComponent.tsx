@@ -3,15 +3,20 @@
 import { useResponsive } from '@/hooks';
 import { ShutdownMessage, TerminalConfig } from '@/types';
 import {
-  getWelcomeMessage,
   handleAboutCommand,
+  handleCertificationsCommand,
   handleContactCommand,
+  handleEducationCommand,
+  handleExperienceCommand,
   handleHelpCommand,
   handleProjectsCommand,
   handleResumeCommand,
   handleSkillsCommand,
   handleSocialCommand,
   handleSocialLinkCommand,
+  handleSudoCommand,
+  handleWhoamiCommand,
+  showWelcomeWithTypewriter,
   TerminalWriter,
 } from '@/utils';
 import { motion } from 'framer-motion';
@@ -42,7 +47,7 @@ const TerminalComponent = () => {
       },
       fontFamily:
         '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Fira Code", "SF Mono", Monaco, Menlo, "Ubuntu Mono", "Courier New", monospace',
-      fontSize: isMobile ? 12 : 14,
+      fontSize: isMobile ? 14 : 18,
       fontWeight: 'normal',
       lineHeight: 1.4,
       cursorBlink: true,
@@ -53,20 +58,6 @@ const TerminalComponent = () => {
     [isMobile]
   );
 
-  const showWelcomeMessage = useCallback(() => {
-    if (!terminal.current) return;
-
-    const welcome = getWelcomeMessage(isMobile);
-    welcome.forEach(line => {
-      terminal.current?.write('\x1b[37m' + line + '\r\n\x1b[0m');
-    });
-  }, [isMobile]);
-
-  const showPrompt = useCallback(() => {
-    if (!terminal.current) return;
-    terminal.current.write('\x1b[34myash@portfolio:~$ \x1b[0m');
-  }, []);
-
   const createTerminalWriter = useCallback(
     (): TerminalWriter => ({
       write: (text: string) => terminal.current?.write(text),
@@ -74,6 +65,25 @@ const TerminalComponent = () => {
     }),
     []
   );
+
+  const showWelcomeMessage = useCallback(async () => {
+    if (!terminal.current) return;
+
+    const writer = createTerminalWriter();
+    await showWelcomeWithTypewriter(writer, isMobile);
+  }, [isMobile, createTerminalWriter]);
+
+  const showPrompt = useCallback(() => {
+    if (!terminal.current) return;
+    terminal.current.write('\x1b[34myash@portfolio:~$ \x1b[0m');
+
+    // Auto-scroll to bottom to ensure content is visible
+    setTimeout(() => {
+      if (terminal.current) {
+        terminal.current.scrollToBottom();
+      }
+    }, 50);
+  }, []);
 
   const handleShutdownSequence = useCallback(() => {
     if (!terminal.current) return;
@@ -158,16 +168,16 @@ const TerminalComponent = () => {
       }, message.delay);
     });
 
-    setTimeout(() => {
+    setTimeout(async () => {
       terminal.current?.write('\r\n');
-      showWelcomeMessage();
+      await showWelcomeMessage();
       showPrompt();
       setIsShutdown(false);
     }, 1200);
   }, [showWelcomeMessage, showPrompt]);
 
   const handleCommand = useCallback(
-    (command: string) => {
+    async (command: string) => {
       if (!terminal.current) return;
 
       const cmd = command.trim().toLowerCase();
@@ -175,31 +185,46 @@ const TerminalComponent = () => {
 
       switch (cmd) {
         case 'help':
-          handleHelpCommand(writer, isMobile);
+          await handleHelpCommand(writer, isMobile);
           break;
         case 'about':
-          handleAboutCommand(writer);
+          await handleAboutCommand(writer);
           break;
         case 'skills':
-          handleSkillsCommand(writer);
+          await handleSkillsCommand(writer);
           break;
         case 'projects':
-          handleProjectsCommand(writer);
+          await handleProjectsCommand(writer);
           break;
         case 'contact':
-          handleContactCommand(writer);
+          await handleContactCommand(writer);
+          break;
+        case 'experience':
+          await handleExperienceCommand(writer);
+          break;
+        case 'education':
+          await handleEducationCommand(writer);
+          break;
+        case 'certifications':
+          await handleCertificationsCommand(writer);
+          break;
+        case 'whoami':
+          await handleWhoamiCommand(writer);
+          break;
+        case 'sudo':
+          await handleSudoCommand(writer);
           break;
         case 'social':
-          handleSocialCommand(writer);
+          await handleSocialCommand(writer);
           break;
         case 'github':
         case 'linkedin':
         case 'leetcode':
         case 'codeforces':
-          handleSocialLinkCommand(writer, cmd);
+          await handleSocialLinkCommand(writer, cmd);
           break;
         case 'resume':
-          handleResumeCommand(writer);
+          await handleResumeCommand(writer);
           break;
         case 'clear':
           terminal.current.clear();
@@ -220,6 +245,13 @@ const TerminalComponent = () => {
           break;
       }
       terminal.current.write('\r\n');
+
+      // Auto-scroll to bottom after command execution
+      setTimeout(() => {
+        if (terminal.current) {
+          terminal.current.scrollToBottom();
+        }
+      }, 100);
     },
     [createTerminalWriter, showPrompt, handleShutdownSequence, isMobile]
   );
@@ -260,10 +292,10 @@ const TerminalComponent = () => {
         terminal.current.unicode.activeVersion = '11';
         terminal.current.open(terminalRef.current);
 
-        setTimeout(() => {
+        setTimeout(async () => {
           if (terminal.current) {
             terminal.current.clear();
-            showWelcomeMessage();
+            await showWelcomeMessage();
             showPrompt();
             terminal.current.focus();
           }
@@ -282,8 +314,9 @@ const TerminalComponent = () => {
             // Enter key
             if (commandBuffer.trim().toLowerCase() === 'clear') {
               terminal.current.write('\r\n');
-              handleCommand(commandBuffer);
-              commandBuffer = '';
+              handleCommand(commandBuffer).then(() => {
+                commandBuffer = '';
+              });
               return;
             }
 
@@ -292,9 +325,10 @@ const TerminalComponent = () => {
             terminal.current.write(
               `\x1b[34myash@portfolio:~$ \x1b[32m${commandBuffer}\x1b[0m\r\n`
             );
-            handleCommand(commandBuffer);
-            commandBuffer = '';
-            showPrompt();
+            handleCommand(commandBuffer).then(() => {
+              commandBuffer = '';
+              showPrompt();
+            });
           } else if (data === '\u007f') {
             // Backspace
             if (commandBuffer.length > 0) {
@@ -313,6 +347,7 @@ const TerminalComponent = () => {
             try {
               fitAddon.current.fit();
             } catch (error) {
+              // eslint-disable-next-line no-console
               console.warn('Terminal resize failed:', error);
             }
           }
@@ -331,6 +366,7 @@ const TerminalComponent = () => {
           }
         };
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Failed to initialize terminal:', error);
       }
     };
@@ -349,7 +385,7 @@ const TerminalComponent = () => {
   if (!isMounted) {
     return (
       <div className='flex h-full w-full items-center justify-center overflow-hidden bg-black'>
-        <div className='font-mono text-sm text-green-400'>
+        <div className='font-mono text-base text-green-400'>
           Loading terminal...
         </div>
       </div>
@@ -358,23 +394,42 @@ const TerminalComponent = () => {
 
   return (
     <motion.div
-      className={`h-full w-full overflow-hidden bg-black ${
+      className={`flex h-full w-full flex-col overflow-hidden bg-black ${
         isMobile ? 'mobile-terminal-fullscreen' : ''
       }`}
       initial={{ opacity: 0, x: isMobile ? 0 : 50 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 1, delay: isMobile ? 0.2 : 0.4 }}
     >
-      {/* Terminal Content - No Header */}
+      {/* Command Bar - Fixed at top of terminal */}
+      <div className='w-full flex-shrink-0 border-b border-green-500/20 bg-black px-4 py-2'>
+        <div
+          className='font-mono text-green-400'
+          style={{
+            fontSize: isMobile ? '14px' : '18px',
+          }}
+        >
+          {isMobile ? (
+            // Mobile: Show fewer commands
+            <span>
+              help | about | social | projects | skills | contact | clear
+            </span>
+          ) : (
+            // Desktop: Show all commands
+            <span>
+              help | about | social | projects | skills | experience | contact |
+              education | certifications | sudo | whoami | clear
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Terminal Content - Scrollable */}
       <div
         ref={terminalRef}
-        className={`h-full w-full overflow-hidden ${
+        className={`min-h-0 w-full flex-1 overflow-auto ${
           isMobile ? 'p-2' : 'p-1.5 sm:p-2'
         }`}
-        style={{
-          minHeight: isMobile ? '250px' : '400px',
-          maxHeight: '100%',
-        }}
       />
     </motion.div>
   );

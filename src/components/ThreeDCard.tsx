@@ -1,6 +1,5 @@
 'use client';
 
-import { portfolioData } from '@/data';
 import { useResponsive } from '@/hooks';
 import { Box, Environment, OrbitControls } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -54,19 +53,7 @@ function Scene() {
 }
 
 const ThreeDCard = () => {
-  const { isMobile, isTablet } = useResponsive();
-
-  const getFontSize = () => {
-    if (isMobile) return 'text-base';
-    if (isTablet) return 'text-lg';
-    return 'text-lg';
-  };
-
-  const getPadding = () => {
-    if (isMobile) return 'p-3';
-    if (isTablet) return 'p-4';
-    return 'p-4';
-  };
+  const { isMobile } = useResponsive();
 
   return (
     <motion.div
@@ -87,27 +74,11 @@ const ThreeDCard = () => {
       </div>
 
       {/* Overlay content */}
-      <div
-        className={`absolute ${isMobile ? 'right-2 bottom-2 left-2' : 'right-4 bottom-4 left-4'}`}
-      >
-        <div className={`bg-black/50 backdrop-blur-sm ${getPadding()}`}>
-          <h3 className={`font-mono text-green-400 ${getFontSize()} mb-2`}>
-            $ whoami
-          </h3>
-          <p
-            className={`font-mono text-green-300 ${isMobile ? 'text-sm' : 'text-sm'} leading-relaxed`}
-          >
-            {isMobile
-              ? 'Passionate developer crafting digital experiences.'
-              : portfolioData.description}
-          </p>
-          {!isMobile && (
-            <div className='mt-2 font-mono text-xs text-green-400'>
-              <span>
-                Specialized in React, Node.js, and cloud architecture.
-              </span>
-            </div>
-          )}
+      <div className='absolute right-4 bottom-4'>
+        <div className='rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm'>
+          <span className='font-mono text-xs text-green-400'>
+            [ 3d interactive card ]
+          </span>
         </div>
       </div>
     </motion.div>

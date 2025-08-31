@@ -5,6 +5,46 @@ export interface TerminalWriter {
   clear: () => void;
 }
 
+// Typewriter effect utility
+export const typewriterEffect = async (
+  terminal: TerminalWriter,
+  text: string,
+  speed = 15,
+  color = '\x1b[37m'
+): Promise<void> => {
+  // Skip delays in test environment
+  if (process.env.NODE_ENV === 'test') {
+    terminal.write(color + text + '\x1b[0m');
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => {
+    let index = 0;
+
+    const typeChar = () => {
+      if (index < text.length) {
+        terminal.write(color + text[index] + '\x1b[0m');
+        index++;
+        setTimeout(typeChar, speed);
+      } else {
+        resolve();
+      }
+    };
+
+    typeChar();
+  });
+};
+
+export const typewriterLine = async (
+  terminal: TerminalWriter,
+  text: string,
+  speed = 15,
+  color = '\x1b[37m'
+): Promise<void> => {
+  await typewriterEffect(terminal, text, speed, color);
+  terminal.write('\r\n');
+};
+
 export const writeColoredText = (
   terminal: TerminalWriter,
   text: string,
@@ -29,108 +69,210 @@ export const writeSeparator = (
   writeLine(terminal, char.repeat(length));
 };
 
-export const handleHelpCommand = (
+export const handleHelpCommand = async (
   terminal: TerminalWriter,
   isMobile = false
 ) => {
-  writeLine(terminal, 'Available commands:');
-  writeLine(terminal, '  help     - Show this help message');
-  writeLine(terminal, '  about    - Learn more about me');
-  writeLine(terminal, '  skills   - View my technical skills');
-  writeLine(terminal, '  projects - See my latest projects');
-  writeLine(terminal, '  contact  - Get in touch');
-  writeLine(terminal, '  social   - View social media commands');
+  await typewriterLine(terminal, 'Available commands:', 15);
+  await typewriterLine(
+    terminal,
+    '  help          - Show this help message',
+    12
+  );
+  await typewriterLine(terminal, '  about         - Learn more about me', 12);
+  await typewriterLine(
+    terminal,
+    '  skills        - View my technical skills',
+    12
+  );
+  await typewriterLine(
+    terminal,
+    '  projects      - See my latest projects',
+    12
+  );
+  await typewriterLine(
+    terminal,
+    '  experience    - View my work experience',
+    12
+  );
+  await typewriterLine(
+    terminal,
+    '  education     - View my educational background',
+    12
+  );
+  await typewriterLine(
+    terminal,
+    '  certifications- View my certifications',
+    12
+  );
+  await typewriterLine(terminal, '  contact       - Get in touch', 12);
+  await typewriterLine(
+    terminal,
+    '  social        - View social media commands',
+    12
+  );
+  await typewriterLine(
+    terminal,
+    '  whoami        - Display current user info',
+    12
+  );
+  await typewriterLine(
+    terminal,
+    '  sudo          - Execute with elevated privileges',
+    12
+  );
 
   if (!isMobile) {
-    writeLine(terminal, '  github   - Open GitHub profile');
-    writeLine(terminal, '  linkedin - Open LinkedIn profile');
-    writeLine(terminal, '  leetcode - Open LeetCode profile');
-    writeLine(terminal, '  codeforces - Open CodeForces profile');
+    await typewriterLine(terminal, '  github        - Open GitHub profile', 12);
+    await typewriterLine(
+      terminal,
+      '  linkedin      - Open LinkedIn profile',
+      12
+    );
+    await typewriterLine(
+      terminal,
+      '  leetcode      - Open LeetCode profile',
+      12
+    );
+    await typewriterLine(
+      terminal,
+      '  codeforces    - Open CodeForces profile',
+      12
+    );
   }
 
-  writeLine(terminal, '  resume   - Download my resume');
-  writeLine(terminal, '  clear    - Clear the terminal');
-  writeLine(terminal, '  exit     - Shutdown terminal session');
+  await typewriterLine(terminal, '  resume        - Download my resume', 12);
+  await typewriterLine(terminal, '  clear         - Clear the terminal', 12);
+  await typewriterLine(
+    terminal,
+    '  exit          - Shutdown terminal session',
+    12
+  );
 };
 
-export const handleAboutCommand = (terminal: TerminalWriter) => {
-  writeLine(terminal, `About ${portfolioData.name}:`);
+export const handleAboutCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, `About ${portfolioData.name}:`, 15);
   writeSeparator(terminal);
-  writeLine(terminal, `${portfolioData.title} - ${portfolioData.description}`);
+  await typewriterLine(
+    terminal,
+    `${portfolioData.title} - ${portfolioData.description}`,
+    12
+  );
   writeLine(terminal, '');
-  writeLine(terminal, `🎓 Education: ${portfolioData.education}`);
-  writeLine(terminal, `💼 Experience: ${portfolioData.experience}`);
-  writeLine(terminal, '🌟 Specializing in modern JavaScript frameworks');
+  await typewriterLine(
+    terminal,
+    `🎓 Education: ${portfolioData.education}`,
+    12
+  );
+  await typewriterLine(
+    terminal,
+    `💼 Experience: ${portfolioData.experience}`,
+    12
+  );
+  await typewriterLine(
+    terminal,
+    '🌟 Specializing in modern JavaScript frameworks',
+    12
+  );
 };
 
-export const handleSkillsCommand = (terminal: TerminalWriter) => {
-  writeLine(terminal, 'Technical Skills:');
+export const handleSkillsCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, 'Technical Skills:', 15);
   writeSeparator(terminal);
 
-  portfolioData.skills.forEach(category => {
-    writeLine(terminal, `${category.name}:`);
-    category.skills.forEach(skill => {
-      writeLine(terminal, `  • ${skill}`);
-    });
-    writeLine(terminal, '');
-  });
-};
-
-export const handleProjectsCommand = (terminal: TerminalWriter) => {
-  writeLine(terminal, 'Recent Projects:');
-  writeSeparator(terminal);
-
-  portfolioData.projects.forEach(project => {
-    writeLine(terminal, `🚀 ${project.title}`);
-    writeLine(terminal, `   • ${project.description}`);
-    if (project.technologies.length > 0) {
-      writeLine(terminal, `   • Tech: ${project.technologies.join(', ')}`);
+  for (const category of portfolioData.skills) {
+    await typewriterLine(terminal, `${category.name}:`, 12);
+    for (const skill of category.skills) {
+      await typewriterLine(terminal, `  • ${skill}`, 10);
     }
     writeLine(terminal, '');
-  });
+  }
 };
 
-export const handleContactCommand = (terminal: TerminalWriter) => {
-  writeLine(terminal, 'Contact Information:');
+export const handleProjectsCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, 'Recent Projects:', 15);
+  writeSeparator(terminal);
+
+  for (const project of portfolioData.projects) {
+    await typewriterLine(terminal, `🚀 ${project.title}`, 12);
+    await typewriterLine(terminal, `   • ${project.description}`, 10);
+    if (project.technologies.length > 0) {
+      await typewriterLine(
+        terminal,
+        `   • Tech: ${project.technologies.join(', ')}`,
+        15
+      );
+    }
+    writeLine(terminal, '');
+  }
+};
+
+export const handleContactCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, 'Contact Information:', 15);
   writeSeparator(terminal, '━', 20);
-  writeLine(terminal, `📧 Email:    ${portfolioData.contact.email}`);
-  writeLine(terminal, `📧 Personal: ${portfolioData.contact.personalEmail}`);
+  await typewriterLine(
+    terminal,
+    `📧 Email:    ${portfolioData.contact.email}`,
+    20
+  );
+  await typewriterLine(
+    terminal,
+    `📧 Personal: ${portfolioData.contact.personalEmail}`,
+    20
+  );
   writeLine(terminal, '');
-  writeLine(terminal, 'Feel free to reach out for collaborations!');
+  await typewriterLine(
+    terminal,
+    'Feel free to reach out for collaborations!',
+    20
+  );
 };
 
-export const handleSocialCommand = (terminal: TerminalWriter) => {
-  writeLine(terminal, 'Social Media Commands:');
+export const handleSocialCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, 'Social Media Commands:', 15);
   writeSeparator(terminal, '━', 23);
-  writeLine(terminal, 'Use these commands to quickly access my profiles:');
+  await typewriterLine(
+    terminal,
+    'Use these commands to quickly access my profiles:',
+    20
+  );
   writeLine(terminal, '');
 
-  portfolioData.social.forEach(social => {
-    writeLine(
+  for (const social of portfolioData.social) {
+    await typewriterLine(
       terminal,
-      `${social.icon} ${social.command.padEnd(10)} - Open ${social.name} profile`
+      `${social.icon} ${social.command.padEnd(10)} - Open ${social.name} profile`,
+      18
     );
-  });
+  }
 
   writeLine(terminal, '');
-  writeLine(terminal, 'Just type any of these commands to visit the profile!');
+  await typewriterLine(
+    terminal,
+    'Just type any of these commands to visit the profile!',
+    20
+  );
 };
 
-export const handleSocialLinkCommand = (
+export const handleSocialLinkCommand = async (
   terminal: TerminalWriter,
   command: string
 ) => {
   const social = portfolioData.social.find(s => s.command === command);
   if (social) {
-    writeLine(terminal, `${social.icon} Opening ${social.name} profile...`);
+    await typewriterLine(
+      terminal,
+      `${social.icon} Opening ${social.name} profile...`,
+      25
+    );
     setTimeout(() => {
       window.open(social.url, '_blank');
     }, 1000);
   }
 };
 
-export const handleResumeCommand = (terminal: TerminalWriter) => {
-  writeLine(terminal, '📄 Downloading resume...');
+export const handleResumeCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, '📄 Downloading resume...', 25);
   writeSeparator(terminal, '━', 24);
 
   try {
@@ -142,63 +284,241 @@ export const handleResumeCommand = (terminal: TerminalWriter) => {
     link.click();
     document.body.removeChild(link);
 
-    writeLine(terminal, '✅ Resume downloaded successfully!');
-    writeLine(
+    await typewriterLine(terminal, '✅ Resume downloaded successfully!', 20);
+    await typewriterLine(
       terminal,
-      '📁 Check your Downloads folder for "Yash_Suthar_Resume.pdf"'
+      '📁 Check your Downloads folder for "Yash_Suthar_Resume.pdf"',
+      20
     );
   } catch {
-    writeLine(
+    await typewriterLine(
       terminal,
       '❌ Error downloading resume. Please try again.',
+      20,
       '\x1b[31m'
     );
   }
 };
 
+export const handleExperienceCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, 'Work Experience:', 15);
+  writeSeparator(terminal, '━', 16);
+
+  await typewriterLine(terminal, '💼 Full Stack Developer (Current)', 20);
+  await typewriterLine(
+    terminal,
+    '   • Building scalable web applications with React & Node.js',
+    18
+  );
+  await typewriterLine(
+    terminal,
+    '   • Experience with cloud services (AWS, Vercel)',
+    18
+  );
+  await typewriterLine(
+    terminal,
+    '   • Implementing modern DevOps practices',
+    18
+  );
+  writeLine(terminal, '');
+
+  await typewriterLine(terminal, '🚀 Freelance Developer', 20);
+  await typewriterLine(
+    terminal,
+    '   • Created custom web solutions for various clients',
+    18
+  );
+  await typewriterLine(
+    terminal,
+    '   • Specialized in React, Next.js, and TypeScript',
+    18
+  );
+  await typewriterLine(terminal, '   • Delivered 10+ successful projects', 18);
+};
+
+export const handleEducationCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, 'Educational Background:', 15);
+  writeSeparator(terminal, '━', 23);
+
+  await typewriterLine(terminal, '🎓 Computer Science Engineering', 20);
+  await typewriterLine(terminal, '   • Focus on Software Development & AI', 18);
+  await typewriterLine(
+    terminal,
+    '   • Relevant Coursework: Data Structures, Algorithms, Web Development',
+    18
+  );
+  await typewriterLine(
+    terminal,
+    '   • Projects: Full-stack applications, AI/ML implementations',
+    18
+  );
+  writeLine(terminal, '');
+
+  await typewriterLine(terminal, '📚 Self-Taught Continuous Learning', 20);
+  await typewriterLine(
+    terminal,
+    '   • Modern JavaScript frameworks and libraries',
+    18
+  );
+  await typewriterLine(
+    terminal,
+    '   • Cloud computing and DevOps practices',
+    18
+  );
+  await typewriterLine(
+    terminal,
+    '   • AI/ML technologies and implementation',
+    18
+  );
+};
+
+export const handleCertificationsCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, 'Certifications & Achievements:', 15);
+  writeSeparator(terminal, '━', 30);
+
+  await typewriterLine(terminal, '🏆 Web Development Certifications', 20);
+  await typewriterLine(terminal, '   • React Advanced Patterns', 18);
+  await typewriterLine(terminal, '   • Node.js Backend Development', 18);
+  await typewriterLine(terminal, '   • TypeScript Professional', 18);
+  writeLine(terminal, '');
+
+  await typewriterLine(terminal, '☁️ Cloud & DevOps', 20);
+  await typewriterLine(terminal, '   • AWS Cloud Practitioner', 18);
+  await typewriterLine(terminal, '   • Docker & Kubernetes Fundamentals', 18);
+  writeLine(terminal, '');
+
+  await typewriterLine(terminal, '🤖 AI/ML Certifications', 20);
+  await typewriterLine(terminal, '   • Machine Learning Fundamentals', 18);
+  await typewriterLine(terminal, '   • Deep Learning Specialization', 18);
+};
+
+export const handleWhoamiCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, 'Current User Information:', 15);
+  writeSeparator(terminal, '━', 25);
+
+  await typewriterLine(terminal, '👤 User: yash', 20, '\x1b[34m');
+  await typewriterLine(terminal, '🏠 Home: /home/yash', 20, '\x1b[34m');
+  await typewriterLine(terminal, '💻 Shell: /bin/bash', 20, '\x1b[34m');
+  await typewriterLine(terminal, '🌐 Hostname: portfolio', 20, '\x1b[34m');
+  await typewriterLine(
+    terminal,
+    '🔑 Groups: developers, admins',
+    20,
+    '\x1b[34m'
+  );
+  writeLine(terminal, '');
+  await typewriterLine(
+    terminal,
+    '✨ Status: Online and ready to create amazing things!',
+    20,
+    '\x1b[32m'
+  );
+};
+
+export const handleSudoCommand = async (terminal: TerminalWriter) => {
+  await typewriterLine(terminal, '[sudo] password for yash: ', 30, '\x1b[33m');
+
+  // Simulate password entry
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  await typewriterEffect(terminal, '********', 200, '\x1b[37m');
+  terminal.write('\r\n');
+
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await typewriterLine(
+    terminal,
+    '🔐 Access granted! You now have elevated privileges.',
+    20,
+    '\x1b[32m'
+  );
+  await typewriterLine(
+    terminal,
+    '⚡ With great power comes great responsibility...',
+    20,
+    '\x1b[33m'
+  );
+  writeLine(terminal, '');
+  await typewriterLine(
+    terminal,
+    '💡 Try running other commands with sudo powers!',
+    20,
+    '\x1b[36m'
+  );
+};
+
 export const getWelcomeMessage = (isMobile = false): string[] => {
   if (isMobile) {
     return [
-      '╔════════════════════════════════════════╗',
-      '║            Yash Suthar                ║',
-      '║        Full Stack Developer           ║',
-      '╚════════════════════════════════════════╝',
+      '[yash@portfolio ~]$ welcome',
       '',
-      'Available commands:',
-      '  help     - Show available commands',
-      '  about    - Learn more about me',
-      '  skills   - View my technical skills',
-      '  projects - See my latest projects',
-      '  contact  - Get in touch',
-      '  social   - View social media commands',
-      '  resume   - Download my resume',
-      '  clear    - Clear the terminal',
-      '  exit     - Shutdown terminal session',
+      "Hi, I'm Yash Suthar, a Software Engineer and AI Engineer.",
+      'I love crafting digital experiences with modern technologies.',
+      '',
+      'Type "help" to explore more about me and my work!',
       '',
     ];
   }
 
   return [
-    '╔══════════════════════════════════════════════════════════╗',
-    '║                    Welcome to Portfolio                 ║',
-    '║                                                          ║',
-    `║              ${portfolioData.name} - ${portfolioData.title}         ║`,
-    '╚══════════════════════════════════════════════════════════╝',
+    '[yash@portfolio ~]$ welcome',
     '',
-    'Available commands:',
-    '  help     - Show available commands',
-    '  about    - Learn more about me',
-    '  skills   - View my technical skills',
-    '  projects - See my latest projects',
-    '  contact  - Get in touch',
-    '  social   - View social media commands',
-    '  github   - Open GitHub profile',
-    '  linkedin - Open LinkedIn profile',
-    '  leetcode - Open LeetCode profile',
-    '  codeforces - Open CodeForces profile',
-    '  resume   - Download my resume',
-    '  clear    - Clear the terminal',
-    '  exit     - Shutdown terminal session',
+    "Hi, I'm Yash Suthar, a Software Engineer and AI Engineer who loves",
+    'crafting digital experiences with modern technologies.',
+    '',
+    'Type "help" to see all available commands and discover more about me!',
     '',
   ];
+};
+
+// Typewriter welcome message function
+export const showWelcomeWithTypewriter = async (
+  terminal: TerminalWriter,
+  isMobile = false
+): Promise<void> => {
+  if (isMobile) {
+    // Show prompt instantly in blue, then green for welcome
+    terminal.write(
+      '\x1b[34m[yash@portfolio ~]$ \x1b[32mwelcome\x1b[0m\r\n\r\n'
+    );
+    await typewriterLine(
+      terminal,
+      "Hi, I'm Yash Suthar, a Software Engineer and AI Engineer.",
+      15
+    );
+    await typewriterLine(
+      terminal,
+      'I love crafting digital experiences with modern technologies.',
+      15
+    );
+    terminal.write('\r\n');
+    await typewriterLine(
+      terminal,
+      'Type "help" to explore more about me and my work!',
+      15,
+      '\x1b[36m'
+    );
+    terminal.write('\r\n');
+  } else {
+    // Show prompt instantly in blue, then green for welcome
+    terminal.write(
+      '\x1b[34m[yash@portfolio ~]$ \x1b[32mwelcome\x1b[0m\r\n\r\n'
+    );
+    await typewriterLine(
+      terminal,
+      "Hi, I'm Yash Suthar, a Software Engineer and AI Engineer who loves",
+      15
+    );
+    await typewriterLine(
+      terminal,
+      'crafting digital experiences with modern technologies.',
+      15
+    );
+    terminal.write('\r\n');
+    await typewriterLine(
+      terminal,
+      'Type "help" to see all available commands and discover more about me!',
+      15,
+      '\x1b[36m'
+    );
+    terminal.write('\r\n');
+  }
 };

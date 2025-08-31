@@ -12,22 +12,23 @@ export default function Home() {
   const { isMobile, isTablet } = useResponsive();
 
   return (
-    <div className='relative max-h-screen min-h-screen overflow-hidden bg-black text-green-400'>
-      {/* Matrix Rain Background */}
-      <ClientOnly>
-        <MatrixRain />
-      </ClientOnly>
+    <div className='relative grid h-dvh w-full grid-rows-[auto_1fr_auto] overflow-hidden bg-black text-green-400'>
+      {/* Matrix Rain Background - Lower z-index */}
+      <div className='absolute inset-0 z-0'>
+        <ClientOnly>
+          <MatrixRain />
+        </ClientOnly>
+      </div>
 
-      {/* Navbar */}
-      <Navbar />
+      {/* Navbar - Highest z-index */}
+      <div className='relative z-50 flex-shrink-0'>
+        <Navbar />
+      </div>
 
       {/* Main Content */}
-      <main
-        className={`relative z-10 ${
-          isMobile ? 'pt-16 pb-16' : 'px-0 pt-16 pb-16 sm:px-0 sm:pt-20'
-        }`}
-      >
-        <div className='w-full' style={{ height: 'calc(100vh - 128px)' }}>
+      <main className='relative z-20 min-h-0 flex-1'>
+        {/* Content container that uses all available space */}
+        <div className='h-full w-full bg-black'>
           {isMobile ? (
             // Mobile layout: Terminal only (full screen)
             <div className='h-full w-full overflow-hidden'>
@@ -119,8 +120,10 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Footer */}
-      <Footer />
+      {/* Footer - Highest z-index */}
+      <div className='relative z-50 flex-shrink-0'>
+        <Footer />
+      </div>
     </div>
   );
 }

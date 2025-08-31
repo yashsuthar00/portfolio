@@ -1,16 +1,21 @@
 import {
   handleAboutCommand,
+  handleCertificationsCommand,
   handleContactCommand,
+  handleEducationCommand,
+  handleExperienceCommand,
   handleHelpCommand,
   handleProjectsCommand,
   handleResumeCommand,
   handleSkillsCommand,
   handleSocialCommand,
+  handleSudoCommand,
+  handleWhoamiCommand,
   TerminalWriter,
 } from './commandHandlers';
 
 // Simple command router for testing
-export const executeCommand = (command: string): string => {
+export const executeCommand = async (command: string): Promise<string> => {
   let output = '';
   const mockWriter: TerminalWriter = {
     write: (text: string) => {
@@ -25,25 +30,40 @@ export const executeCommand = (command: string): string => {
 
   switch (trimmedCommand) {
     case 'help':
-      handleHelpCommand(mockWriter);
+      await handleHelpCommand(mockWriter);
       break;
     case 'about':
-      handleAboutCommand(mockWriter);
+      await handleAboutCommand(mockWriter);
       break;
     case 'skills':
-      handleSkillsCommand(mockWriter);
+      await handleSkillsCommand(mockWriter);
       break;
     case 'projects':
-      handleProjectsCommand(mockWriter);
+      await handleProjectsCommand(mockWriter);
       break;
     case 'contact':
-      handleContactCommand(mockWriter);
+      await handleContactCommand(mockWriter);
       break;
     case 'social':
-      handleSocialCommand(mockWriter);
+      await handleSocialCommand(mockWriter);
+      break;
+    case 'experience':
+      await handleExperienceCommand(mockWriter);
+      break;
+    case 'education':
+      await handleEducationCommand(mockWriter);
+      break;
+    case 'certifications':
+      await handleCertificationsCommand(mockWriter);
+      break;
+    case 'whoami':
+      await handleWhoamiCommand(mockWriter);
+      break;
+    case 'sudo':
+      await handleSudoCommand(mockWriter);
       break;
     case 'resume':
-      handleResumeCommand(mockWriter);
+      await handleResumeCommand(mockWriter);
       break;
     case 'clear':
       return 'CLEAR_TERMINAL';
@@ -51,5 +71,10 @@ export const executeCommand = (command: string): string => {
       return `Command not found: ${command}. Type "help" for available commands.`;
   }
 
-  return output;
+  return output
+    .replace(/\x1b\[[0-9;]*m/g, '') // Remove ANSI color codes
+    .replace(/\r\n/g, '\n') // Convert CRLF to LF
+    .replace(/\r/g, '\n') // Convert remaining CR to LF
+    .replace(/·/g, ' ') // Replace middle dots with spaces
+    .trim();
 };
