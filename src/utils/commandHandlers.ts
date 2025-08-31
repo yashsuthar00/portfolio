@@ -56,7 +56,7 @@ export const handleHelpCommand = (
 export const handleAboutCommand = (terminal: TerminalWriter) => {
   writeLine(terminal, `About ${portfolioData.name}:`);
   writeSeparator(terminal);
-  writeLine(terminal, portfolioData.description);
+  writeLine(terminal, `${portfolioData.title} - ${portfolioData.description}`);
   writeLine(terminal, '');
   writeLine(terminal, `🎓 Education: ${portfolioData.education}`);
   writeLine(terminal, `💼 Experience: ${portfolioData.experience}`);

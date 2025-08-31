@@ -32,6 +32,23 @@ const eslintConfig = [
       'no-var': 'error',
     },
   },
+  // Test files configuration
+  {
+    files: [
+      '**/__tests__/**/*',
+      '**/*.test.*',
+      '**/*.spec.*',
+      'e2e/**/*',
+      'jest.config.js',
+      'jest.setup.js',
+      'jest.polyfills.js',
+    ],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-console': 'off',
+    },
+  },
 ];
 
 export default eslintConfig;
