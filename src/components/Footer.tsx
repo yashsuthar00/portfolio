@@ -37,7 +37,11 @@ const Footer = () => {
   }, [isMobile]);
 
   return (
-    <footer className='w-full border-t border-green-500/20 bg-black backdrop-blur-md'>
+    <footer
+      className='w-full border-t border-green-500/20 bg-black backdrop-blur-md'
+      role='contentinfo'
+      aria-label='Site footer with social links and status'
+    >
       <div className='footer-content w-full px-4 py-2 sm:px-6 sm:py-3'>
         {isMobile ? (
           // Mobile: Just prompt and time
@@ -63,20 +67,26 @@ const Footer = () => {
               </span>
             </div>
 
-            {/* Center: Social links */}
-            <div className='flex items-center space-x-3'>
+            {/* Center: Social links with SEO-optimized attributes */}
+            <nav
+              className='flex items-center space-x-3'
+              role='navigation'
+              aria-label='Social media links'
+            >
               {portfolioData.social.map(social => (
                 <a
                   key={social.command}
                   href={social.url}
                   target='_blank'
                   rel='noopener noreferrer'
-                  className='font-mono text-xs text-green-300 transition-colors duration-200 hover:text-green-400 sm:text-sm lg:text-base'
+                  className='font-mono text-xs text-green-300 transition-colors duration-200 hover:text-green-400 focus:text-green-400 focus:outline-none sm:text-sm lg:text-base'
+                  aria-label={`Visit Yash Suthar's ${social.command} profile`}
+                  title={`${social.command} - ${social.url}`}
                 >
                   {social.command}
                 </a>
               ))}
-            </div>
+            </nav>
 
             {/* Right: Time only */}
             <div className='flex items-center'>

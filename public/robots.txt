@@ -1,0 +1,18 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+
+# Googlebot
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Host
+Host: https://yashsuthar.com
+
+# Sitemaps
+Sitemap: https://yashsuthar.com/sitemap.xml

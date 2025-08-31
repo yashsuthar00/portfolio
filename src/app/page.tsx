@@ -14,24 +14,44 @@ export default function Home() {
   return (
     <div className='relative grid h-dvh w-full grid-rows-[auto_1fr_auto] overflow-hidden bg-black text-green-400'>
       {/* Matrix Rain Background - Lower z-index */}
-      <div className='absolute inset-0 z-0'>
+      <div
+        className='absolute inset-0 z-0'
+        role='presentation'
+        aria-hidden='true'
+      >
         <ClientOnly>
           <MatrixRain />
         </ClientOnly>
       </div>
 
-      {/* Navbar - Highest z-index */}
-      <div className='relative z-50 flex-shrink-0'>
+      {/* Header with Navigation - Semantic HTML */}
+      <header className='relative z-50 flex-shrink-0' role='banner'>
         <Navbar />
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <main className='relative z-20 min-h-0 flex-1'>
+      {/* Main Content - Primary content area */}
+      <main
+        className='relative z-20 min-h-0 flex-1'
+        role='main'
+        aria-label='Portfolio Content'
+      >
+        {/* Hidden h1 for SEO - only one per page */}
+        <h1 className='sr-only'>
+          Yash Suthar - Full Stack Developer Portfolio | Interactive Terminal
+          Experience
+        </h1>
+
         {/* Content container that uses all available space */}
-        <div className='h-full w-full bg-black'>
+        <section
+          className='h-full w-full bg-black'
+          aria-label='Interactive Portfolio Interface'
+        >
           {isMobile ? (
             // Mobile layout: Terminal only (full screen)
-            <div className='h-full w-full overflow-hidden'>
+            <article
+              className='h-full w-full overflow-hidden'
+              aria-label='Mobile Terminal Interface'
+            >
               <ClientOnly
                 fallback={
                   <div className='flex h-full w-full items-center justify-center bg-black'>
@@ -43,12 +63,15 @@ export default function Home() {
               >
                 <TerminalComponent />
               </ClientOnly>
-            </div>
+            </article>
           ) : isTablet ? (
             // Tablet layout: Stack vertically with divider
             <div className='flex h-full flex-col overflow-hidden'>
               {/* 3D Card - 35% height on tablet */}
-              <div className='h-[35%] min-h-[280px] flex-shrink-0'>
+              <article
+                className='h-[35%] min-h-[280px] flex-shrink-0'
+                aria-label='3D Interactive Card'
+              >
                 <ClientOnly
                   fallback={
                     <div className='flex h-full w-full items-center justify-center bg-black/20'>
@@ -60,13 +83,20 @@ export default function Home() {
                 >
                   <ThreeDCard />
                 </ClientOnly>
-              </div>
+              </article>
 
               {/* Divider */}
-              <div className='h-px bg-green-500/30'></div>
+              <div
+                className='h-px bg-green-500/30'
+                role='separator'
+                aria-hidden='true'
+              ></div>
 
               {/* Terminal - 65% height on tablet */}
-              <div className='h-[65%] min-h-[400px] flex-shrink-0 overflow-hidden'>
+              <article
+                className='h-[65%] min-h-[400px] flex-shrink-0 overflow-hidden'
+                aria-label='Interactive Terminal'
+              >
                 <ClientOnly
                   fallback={
                     <div className='flex h-full w-full items-center justify-center bg-black'>
@@ -78,13 +108,16 @@ export default function Home() {
                 >
                   <TerminalComponent />
                 </ClientOnly>
-              </div>
+              </article>
             </div>
           ) : (
             // Desktop layout: Side by side with vertical divider
             <div className='flex h-full overflow-hidden'>
               {/* Left side - 3D Card (40% width on desktop) */}
-              <div className='h-full w-[40%] overflow-hidden'>
+              <article
+                className='h-full w-[40%] overflow-hidden'
+                aria-label='3D Interactive Experience'
+              >
                 <ClientOnly
                   fallback={
                     <div className='flex h-full w-full items-center justify-center bg-black/20'>
@@ -96,13 +129,20 @@ export default function Home() {
                 >
                   <ThreeDCard />
                 </ClientOnly>
-              </div>
+              </article>
 
               {/* Vertical Divider */}
-              <div className='w-px bg-green-500/30'></div>
+              <div
+                className='w-px bg-green-500/30'
+                role='separator'
+                aria-hidden='true'
+              ></div>
 
               {/* Right side - Terminal (60% width on desktop) */}
-              <div className='h-full w-[60%] overflow-hidden'>
+              <article
+                className='h-full w-[60%] overflow-hidden'
+                aria-label='Interactive Terminal Interface'
+              >
                 <ClientOnly
                   fallback={
                     <div className='flex h-full w-full items-center justify-center bg-black'>
@@ -114,16 +154,16 @@ export default function Home() {
                 >
                   <TerminalComponent />
                 </ClientOnly>
-              </div>
+              </article>
             </div>
           )}
-        </div>
+        </section>
       </main>
 
-      {/* Footer - Highest z-index */}
-      <div className='relative z-50 flex-shrink-0'>
+      {/* Footer - Semantic footer */}
+      <footer className='relative z-50 flex-shrink-0' role='contentinfo'>
         <Footer />
-      </div>
+      </footer>
     </div>
   );
 }

@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 5173",
-    "build": "next build",
+    "build": "next build && next-sitemap",
+    "postbuild": "next-sitemap",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
@@ -33,6 +34,8 @@
     "@xterm/xterm": "^5.5.0",
     "framer-motion": "^12.23.12",
     "next": "^15.5.2",
+    "next-seo": "^6.8.0",
+    "next-sitemap": "^4.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.179.1"
