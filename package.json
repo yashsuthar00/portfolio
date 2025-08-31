@@ -12,7 +12,7 @@
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
     "prepare": "husky",
-    "commit": "cz",
+    "commit": "echo 'Use conventional commit format: feat/fix/docs/style/refactor/perf/test/build/ci/chore: description'",
     "pre-commit": "lint-staged",
     "test": "echo \"No tests specified\" && exit 0"
   },
@@ -25,7 +25,7 @@
     "@xterm/addon-unicode11": "^0.8.0",
     "@xterm/xterm": "^5.5.0",
     "framer-motion": "^12.23.12",
-    "next": "15.3.4",
+    "next": "^15.5.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.179.1"
@@ -40,8 +40,6 @@
     "@types/react-dom": "^19",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.41.0",
-    "commitizen": "^4.3.1",
-    "cz-conventional-changelog": "^3.3.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "eslint-config-prettier": "^10.1.8",
@@ -61,10 +59,5 @@
     "*.{json,md,css,scss}": [
       "prettier --write"
     ]
-  },
-  "config": {
-    "commitizen": {
-      "path": "cz-conventional-changelog"
-    }
   }
 }
