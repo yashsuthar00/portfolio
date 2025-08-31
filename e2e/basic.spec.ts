@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Portfolio Website - Basic Functionality', () => {
   test.beforeEach(async ({ page }) => {

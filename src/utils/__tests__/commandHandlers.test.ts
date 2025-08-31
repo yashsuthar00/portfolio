@@ -1,5 +1,5 @@
-import { executeCommand } from '../testCommandRouter';
 import { portfolioData } from '../../data/portfolio';
+import { executeCommand } from '../testCommandRouter';
 
 // Mock window.open
 const mockWindowOpen = jest.fn();

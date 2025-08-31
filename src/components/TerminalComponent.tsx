@@ -1,21 +1,21 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { useResponsive } from '@/hooks';
-import { TerminalConfig, ShutdownMessage } from '@/types';
+import { ShutdownMessage, TerminalConfig } from '@/types';
 import {
   getWelcomeMessage,
-  handleHelpCommand,
   handleAboutCommand,
-  handleSkillsCommand,
-  handleProjectsCommand,
   handleContactCommand,
+  handleHelpCommand,
+  handleProjectsCommand,
+  handleResumeCommand,
+  handleSkillsCommand,
   handleSocialCommand,
   handleSocialLinkCommand,
-  handleResumeCommand,
   TerminalWriter,
 } from '@/utils';
+import { motion } from 'framer-motion';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const TerminalComponent = () => {
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -348,11 +348,7 @@ const TerminalComponent = () => {
 
   if (!isMounted) {
     return (
-      <div
-        className={`flex h-full w-full items-center justify-center overflow-hidden bg-black ${
-          isMobile ? '' : 'rounded-lg border border-green-500/50'
-        }`}
-      >
+      <div className='flex h-full w-full items-center justify-center overflow-hidden bg-black'>
         <div className='font-mono text-sm text-green-400'>
           Loading terminal...
         </div>
@@ -363,9 +359,7 @@ const TerminalComponent = () => {
   return (
     <motion.div
       className={`h-full w-full overflow-hidden bg-black ${
-        isMobile
-          ? 'mobile-terminal-fullscreen'
-          : 'rounded-lg border border-green-500/50'
+        isMobile ? 'mobile-terminal-fullscreen' : ''
       }`}
       initial={{ opacity: 0, x: isMobile ? 0 : 50 }}
       animate={{ opacity: 1, x: 0 }}

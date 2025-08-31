@@ -1,11 +1,11 @@
 import {
-  handleHelpCommand,
   handleAboutCommand,
-  handleSkillsCommand,
-  handleProjectsCommand,
   handleContactCommand,
-  handleSocialCommand,
+  handleHelpCommand,
+  handleProjectsCommand,
   handleResumeCommand,
+  handleSkillsCommand,
+  handleSocialCommand,
   TerminalWriter,
 } from './commandHandlers';
 

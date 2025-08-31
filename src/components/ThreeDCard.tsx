@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Box, Environment, OrbitControls } from '@react-three/drei';
-import { motion } from 'framer-motion';
-import { useResponsive } from '@/hooks';
 import { portfolioData } from '@/data';
+import { useResponsive } from '@/hooks';
+import { Box, Environment, OrbitControls } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { motion } from 'framer-motion';
+import { useRef, useState } from 'react';
 
 // 3D Scene Component
 function Scene() {
@@ -70,7 +70,7 @@ const ThreeDCard = () => {
 
   return (
     <motion.div
-      className='relative h-full w-full overflow-hidden rounded-lg border border-green-500/30 bg-black/20 backdrop-blur-sm'
+      className='relative h-full w-full overflow-hidden bg-black/20 backdrop-blur-sm'
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 1, delay: 0.2 }}
@@ -90,9 +90,7 @@ const ThreeDCard = () => {
       <div
         className={`absolute ${isMobile ? 'right-2 bottom-2 left-2' : 'right-4 bottom-4 left-4'}`}
       >
-        <div
-          className={`rounded border border-green-500/50 bg-black/50 backdrop-blur-sm ${getPadding()}`}
-        >
+        <div className={`bg-black/50 backdrop-blur-sm ${getPadding()}`}>
           <h3 className={`font-mono text-green-400 ${getFontSize()} mb-2`}>
             $ whoami
           </h3>
