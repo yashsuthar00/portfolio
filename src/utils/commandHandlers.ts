@@ -5,6 +5,28 @@ export interface TerminalWriter {
   clear: () => void;
 }
 
+// Typing state management
+let isTyping = false;
+let scrollTimeout: NodeJS.Timeout | null = null;
+
+export const getTypingStatus = (): boolean => isTyping;
+
+// Debounced scroll function to prevent laggy repeated scrolling
+const debouncedScroll = (element: HTMLElement, offset: number = 60) => {
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout);
+  }
+
+  scrollTimeout = setTimeout(() => {
+    if (element) {
+      element.scrollTo({
+        top: element.scrollHeight - element.clientHeight - offset,
+        behavior: 'smooth',
+      });
+    }
+  }, 100); // Wait 100ms before scrolling
+};
+
 // Typewriter effect utility
 export const typewriterEffect = async (
   terminal: TerminalWriter,
@@ -18,15 +40,45 @@ export const typewriterEffect = async (
     return Promise.resolve();
   }
 
+  isTyping = true;
+  let lastScrollTime = 0;
+
   return new Promise(resolve => {
     let index = 0;
 
     const typeChar = () => {
       if (index < text.length) {
         terminal.write(color + text[index] + '\x1b[0m');
+
+        // Only scroll occasionally to prevent lag, and only on newlines or every 10 chars
+        const now = Date.now();
+        if (
+          (text[index] === '\n' || index % 10 === 0) &&
+          now - lastScrollTime > 200
+        ) {
+          lastScrollTime = now;
+          // Try to find the viewport and scroll smoothly
+          const terminalElement = document.querySelector(
+            '.xterm-viewport'
+          ) as HTMLElement;
+          if (terminalElement) {
+            debouncedScroll(terminalElement, 80);
+          }
+        }
+
         index++;
         setTimeout(typeChar, speed);
       } else {
+        isTyping = false;
+        // Final scroll when typing is complete
+        setTimeout(() => {
+          const terminalElement = document.querySelector(
+            '.xterm-viewport'
+          ) as HTMLElement;
+          if (terminalElement) {
+            debouncedScroll(terminalElement, 80);
+          }
+        }, 100);
         resolve();
       }
     };
@@ -111,11 +163,7 @@ export const handleHelpCommand = async (
     '  social        - View social media commands',
     12
   );
-  await typewriterLine(
-    terminal,
-    '  whoami        - Display current user info',
-    12
-  );
+
   await typewriterLine(
     terminal,
     '  sudo          - Execute with elevated privileges',
@@ -141,13 +189,8 @@ export const handleHelpCommand = async (
     );
   }
 
-  await typewriterLine(terminal, '  resume        - Download my resume', 12);
+  await typewriterLine(terminal, '  resume/cv     - Download my resume', 12);
   await typewriterLine(terminal, '  clear         - Clear the terminal', 12);
-  await typewriterLine(
-    terminal,
-    '  exit          - Shutdown terminal session',
-    12
-  );
 };
 
 export const handleAboutCommand = async (terminal: TerminalWriter) => {
@@ -393,55 +436,70 @@ export const handleCertificationsCommand = async (terminal: TerminalWriter) => {
 };
 
 export const handleWhoamiCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, 'Current User Information:', 15);
-  writeSeparator(terminal, '━', 25);
-
-  await typewriterLine(terminal, '👤 User: yash', 20, '\x1b[34m');
-  await typewriterLine(terminal, '🏠 Home: /home/yash', 20, '\x1b[34m');
-  await typewriterLine(terminal, '💻 Shell: /bin/bash', 20, '\x1b[34m');
-  await typewriterLine(terminal, '🌐 Hostname: portfolio', 20, '\x1b[34m');
   await typewriterLine(
     terminal,
-    '🔑 Groups: developers, admins',
-    20,
-    '\x1b[34m'
+    '🤖 Scanning digital fingerprint...',
+    15,
+    '\x1b[33m'
   );
-  writeLine(terminal, '');
+  await new Promise(resolve => setTimeout(resolve, 500));
   await typewriterLine(
     terminal,
-    '✨ Status: Online and ready to create amazing things!',
-    20,
+    '📡 Quantum signature detected:',
+    15,
+    '\x1b[36m'
+  );
+  await typewriterLine(terminal, '', 10);
+  await typewriterLine(
+    terminal,
+    '┌─────────────────────────────────────┐',
+    10,
+    '\x1b[32m'
+  );
+  await typewriterLine(
+    terminal,
+    '│  👨‍💻 Entity: Yash Suthar              │',
+    15,
+    '\x1b[32m'
+  );
+  await typewriterLine(
+    terminal,
+    '│  🚀 Role: Code Architect & AI Wizard  │',
+    15,
+    '\x1b[32m'
+  );
+  await typewriterLine(
+    terminal,
+    '│  🌍 Location: Digital Realm           │',
+    15,
+    '\x1b[32m'
+  );
+  await typewriterLine(
+    terminal,
+    '│  ⚡ Status: Caffeinated & Creating    │',
+    15,
+    '\x1b[32m'
+  );
+  await typewriterLine(
+    terminal,
+    '│  🎯 Mission: Building the Future      │',
+    15,
+    '\x1b[32m'
+  );
+  await typewriterLine(
+    terminal,
+    '└─────────────────────────────────────┘',
+    10,
     '\x1b[32m'
   );
 };
 
 export const handleSudoCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, '[sudo] password for yash: ', 30, '\x1b[33m');
-
-  // Simulate password entry
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  await typewriterEffect(terminal, '********', 200, '\x1b[37m');
-  terminal.write('\r\n');
-
-  await new Promise(resolve => setTimeout(resolve, 500));
   await typewriterLine(
     terminal,
-    '🔐 Access granted! You now have elevated privileges.',
+    'Hi, I am Yash Suthar a software & AI-engineer',
     20,
-    '\x1b[32m'
-  );
-  await typewriterLine(
-    terminal,
-    '⚡ With great power comes great responsibility...',
-    20,
-    '\x1b[33m'
-  );
-  writeLine(terminal, '');
-  await typewriterLine(
-    terminal,
-    '💡 Try running other commands with sudo powers!',
-    20,
-    '\x1b[36m'
+    '\x1b[37m'
   );
 };
 
@@ -454,7 +512,6 @@ export const getWelcomeMessage = (isMobile = false): string[] => {
       'I love crafting digital experiences with modern technologies.',
       '',
       'Type "help" to explore more about me and my work!',
-      '',
     ];
   }
 
@@ -465,7 +522,6 @@ export const getWelcomeMessage = (isMobile = false): string[] => {
     'crafting digital experiences with modern technologies.',
     '',
     'Type "help" to see all available commands and discover more about me!',
-    '',
   ];
 };
 
@@ -476,9 +532,7 @@ export const showWelcomeWithTypewriter = async (
 ): Promise<void> => {
   if (isMobile) {
     // Show prompt instantly in blue, then green for welcome
-    terminal.write(
-      '\x1b[34m[yash@portfolio ~]$ \x1b[32mwelcome\x1b[0m\r\n\r\n'
-    );
+    terminal.write('\x1b[34m[yash@portfolio ~]$ \x1b[32mwelcome\x1b[0m\r\n');
     await typewriterLine(
       terminal,
       "Hi, I'm Yash Suthar, a Software Engineer and AI Engineer.",
@@ -494,14 +548,11 @@ export const showWelcomeWithTypewriter = async (
       terminal,
       'Type "help" to explore more about me and my work!',
       15,
-      '\x1b[36m'
+      '\x1b[37m'
     );
-    terminal.write('\r\n');
   } else {
     // Show prompt instantly in blue, then green for welcome
-    terminal.write(
-      '\x1b[34m[yash@portfolio ~]$ \x1b[32mwelcome\x1b[0m\r\n\r\n'
-    );
+    terminal.write('\x1b[34m[yash@portfolio ~]$ \x1b[32mwelcome\x1b[0m\r\n');
     await typewriterLine(
       terminal,
       "Hi, I'm Yash Suthar, a Software Engineer and AI Engineer who loves",
@@ -517,7 +568,7 @@ export const showWelcomeWithTypewriter = async (
       terminal,
       'Type "help" to see all available commands and discover more about me!',
       15,
-      '\x1b[36m'
+      '\x1b[37m'
     );
     terminal.write('\r\n');
   }

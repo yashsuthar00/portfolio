@@ -65,44 +65,122 @@ body::before {
 /* Terminal scrollbar styling */
 .xterm-viewport {
   scrollbar-width: thin;
-  scrollbar-color: #00ff00 #000000;
+  scrollbar-color: #c0c0c0 transparent;
 }
 
-.xterm-viewport::-webkit-scrollbar {
-  width: 6px;
-}
+/* Hide scrollbar on mobile and tablet screens */
+@media (max-width: 1023px) {
+  .xterm-viewport {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
 
-@media (min-width: 768px) {
   .xterm-viewport::-webkit-scrollbar {
-    width: 8px;
+    display: none; /* Chrome, Safari, Opera */
+    width: 0;
+    height: 0;
   }
 }
 
-.xterm-viewport::-webkit-scrollbar-track {
-  background: #000000;
-}
+/* Only show scrollbar and add padding on desktop */
+@media (min-width: 1024px) {
+  .xterm-viewport {
+    padding-right: 16px; /* Gap between text and scrollbar on desktop */
+  }
 
-.xterm-viewport::-webkit-scrollbar-thumb {
-  background: #00ff00;
-  border-radius: 4px;
-}
+  .xterm-viewport::-webkit-scrollbar {
+    width: 6px;
+  }
 
-.xterm-viewport::-webkit-scrollbar-thumb:hover {
-  background: #00cc00;
+  .xterm-viewport::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .xterm-viewport::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+    border-radius: 3px;
+  }
+
+  .xterm-viewport::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+  }
 }
 
 /* Fix emoji rendering in terminal */
 .xterm .xterm-screen {
   font-variant-emoji: emoji;
+  font-variant-numeric: normal !important;
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0,
+    'tnum' 0,
+    'lnum' 1 !important;
+  letter-spacing: 0;
 }
 
 .xterm-char-measure-element {
   font-variant-emoji: emoji;
+  font-variant-numeric: normal !important;
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0,
+    'tnum' 0,
+    'lnum' 1 !important;
+  font-family:
+    'Fira Code', 'SF Mono', Monaco, Menlo, 'Ubuntu Mono', 'Courier New',
+    monospace;
 }
 
-/* Ensure proper emoji width */
+/* Ensure proper emoji width and consistent number rendering */
 .xterm .xterm-rows {
-  font-feature-settings: 'liga' 0;
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0,
+    'tnum' 0,
+    'lnum' 1 !important;
+  font-variant-emoji: emoji;
+  font-variant-numeric: normal !important;
+}
+
+/* Global terminal font consistency - Force normal number rendering */
+.xterm {
+  font-variant-numeric: normal !important;
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0,
+    'tnum' 0,
+    'lnum' 1 !important;
+}
+
+/* Force all text in terminal to use same font style */
+.xterm .xterm-rows > div {
+  font-variant-numeric: normal !important;
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0,
+    'tnum' 0,
+    'lnum' 1 !important;
+}
+
+/* Ensure consistent character width for all glyphs */
+.xterm .xterm-char {
+  font-variant-numeric: normal !important;
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0,
+    'tnum' 0,
+    'lnum' 1 !important;
+}
+
+/* Fix emoji clipping and ensure proper character width */
+.xterm .xterm-char {
+  font-variant-emoji: emoji;
+  text-rendering: optimizeSpeed;
+  font-kerning: none;
+}
+
+/* Better emoji support */
+.xterm .xterm-decoration-container {
   font-variant-emoji: emoji;
 }
 
@@ -226,11 +304,14 @@ body::before {
 .xterm .xterm-viewport {
   height: 100% !important;
   max-height: 100% !important;
+  scroll-behavior: smooth;
+  scroll-padding-bottom: 60px; /* Keep content above footer */
 }
 
 .xterm .xterm-screen {
   height: 100% !important;
   max-height: 100% !important;
+  padding-bottom: 60px; /* Extra space to prevent footer overlap */
 }
 
 /* Non-selectable text for UI components */
@@ -254,25 +335,155 @@ body::before {
 @media (max-width: 767px) {
   body {
     font-size: 14px;
+    overflow-x: hidden;
   }
 
+  /* Hide scrollbar on mobile */
   .xterm-viewport {
-    scrollbar-width: thin;
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE and Edge */
+    scroll-behavior: smooth !important;
+  }
+
+  /* Hide webkit scrollbar on mobile */
+  .xterm-viewport::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
   }
 
   /* Full screen terminal on mobile */
   .mobile-terminal-fullscreen {
-    height: calc(100vh - 128px) !important;
-    min-height: calc(100vh - 128px) !important;
-    max-height: calc(100vh - 128px) !important;
+    height: calc(100vh - 70px) !important; /* Account for navbar only */
+    min-height: calc(100vh - 70px) !important;
+    max-height: calc(100vh - 70px) !important;
     margin: 0 !important;
     border-radius: 0 !important;
     border: none !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
   }
 
   /* Remove padding from mobile terminal content */
   .mobile-terminal-fullscreen > div {
     padding: 0.5rem !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    height: 100% !important;
+  }
+
+  /* Ensure terminal content doesn't overflow on mobile */
+  .xterm {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .xterm .xterm-viewport {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    scroll-behavior: smooth;
+  }
+
+  .xterm .xterm-screen {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Better number font rendering on mobile - keep same as characters */
+  .xterm .xterm-char {
+    font-variant-numeric: normal !important;
+    font-feature-settings:
+      'liga' 0,
+      'calt' 0,
+      'tnum' 0,
+      'lnum' 0 !important;
+    font-family:
+      'Fira Code', 'SF Mono', Monaco, Menlo, 'Ubuntu Mono', 'Courier New',
+      monospace !important;
+    letter-spacing: 0 !important;
+    width: auto !important;
+  }
+
+  /* Force consistent character width for all text including numbers */
+  .xterm .xterm-char-measure-element {
+    font-variant-numeric: normal !important;
+    font-feature-settings:
+      'liga' 0,
+      'calt' 0,
+      'tnum' 0,
+      'lnum' 0 !important;
+    font-family:
+      'Fira Code', 'SF Mono', Monaco, Menlo, 'Ubuntu Mono', 'Courier New',
+      monospace !important;
+  }
+
+  /* Fix number width specifically */
+  .xterm .xterm-rows span {
+    font-variant-numeric: normal !important;
+    font-feature-settings:
+      'liga' 0,
+      'calt' 0,
+      'tnum' 0,
+      'lnum' 0 !important;
+    font-family:
+      'Fira Code', 'SF Mono', Monaco, Menlo, 'Ubuntu Mono', 'Courier New',
+      monospace !important;
+    letter-spacing: 0 !important;
+  }
+
+  /* Ensure proper text wrapping on mobile - keep words together */
+  .xterm .xterm-rows {
+    width: 100% !important;
+    max-width: 100% !important;
+    word-wrap: normal !important;
+    overflow-wrap: normal !important;
+    white-space: pre !important;
+    word-break: normal !important;
+    hyphens: none !important;
+    line-break: anywhere !important;
+  }
+
+  /* Better line breaking for long words - prevent character splitting */
+  .xterm .xterm-rows div {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    white-space: pre !important;
+    word-spacing: normal !important;
+    letter-spacing: 0 !important;
+  }
+
+  /* Force monospace consistency */
+  .xterm .xterm-rows,
+  .xterm .xterm-rows div,
+  .xterm .xterm-rows span {
+    font-family:
+      'Fira Code', 'SF Mono', Monaco, Menlo, 'Ubuntu Mono', 'Courier New',
+      monospace !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Prevent horizontal scrolling */
+  html,
+  body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+
+  /* Smooth scrolling for mobile */
+  .xterm .xterm-viewport {
+    scroll-behavior: smooth !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-padding-bottom: 80px !important;
+  }
+
+  /* Better mobile scrolling performance */
+  .mobile-terminal-fullscreen .xterm-viewport {
+    will-change: scroll-position;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
   }
 }
 

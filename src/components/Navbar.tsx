@@ -16,7 +16,7 @@ const Navbar = () => {
         {isMobile ? (
           // Mobile: Name and title left-aligned
           <div className='flex flex-col items-start justify-start'>
-            <h2 className='font-mono text-lg font-bold text-green-400 sm:text-xl lg:text-2xl'>
+            <h2 className='font-mono text-lg font-bold text-green-400 sm:text-lg lg:text-xl'>
               <Link
                 href='/'
                 className='hover:text-green-300 focus:text-green-300 focus:outline-none'
@@ -25,14 +25,14 @@ const Navbar = () => {
                 YASH SUTHAR
               </Link>
             </h2>
-            <p className='mt-1 font-mono text-xs text-green-300 sm:text-sm lg:text-base'>
-              Full Stack Developer & Software Engineer
+            <p className='mt-1 font-mono text-sm text-gray-400 sm:text-sm lg:text-base'>
+              Software Engineer
             </p>
           </div>
         ) : (
           // Desktop: Name and title left-aligned
           <div className='flex flex-col items-start justify-start'>
-            <h2 className='font-mono text-lg font-bold text-green-400 sm:text-xl lg:text-2xl'>
+            <h2 className='font-mono text-base font-bold text-green-400 sm:text-lg lg:text-xl'>
               <Link
                 href='/'
                 className='hover:text-green-300 focus:text-green-300 focus:outline-none'
@@ -41,8 +41,8 @@ const Navbar = () => {
                 YASH SUTHAR
               </Link>
             </h2>
-            <p className='mt-1 font-mono text-sm text-green-300 sm:text-base lg:text-lg'>
-              Full Stack Developer & Software Engineer
+            <p className='mt-1 font-mono text-sm text-gray-400 sm:text-base lg:text-lg'>
+              Software Engineer
             </p>
           </div>
         )}
