@@ -1,4 +1,28 @@
 import { portfolioData } from '../data/portfolio';
+import { trackEvent } from './analytics';
+
+// Canonical list of commands the terminal understands. Keep in sync with the
+// switch in TerminalComponent. Used to separate real commands from free-typed
+// input in analytics (see sanitizeCommand).
+export const KNOWN_COMMANDS = [
+  'help',
+  'about',
+  'skills',
+  'projects',
+  'contact',
+  'experience',
+  'education',
+  'certifications',
+  'sudo',
+  'social',
+  'github',
+  'linkedin',
+  'leetcode',
+  'codeforces',
+  'resume',
+  'cv',
+  'clear',
+] as const;
 
 export interface TerminalWriter {
   write: (text: string) => void;
@@ -308,6 +332,8 @@ export const handleSocialLinkCommand = async (
       `${social.icon} Opening ${social.name} profile...`,
       25
     );
+    // Analytics: a profile link was opened from the terminal (not the footer).
+    trackEvent('outbound_click', { platform: command, location: 'terminal' });
     setTimeout(() => {
       window.open(social.url, '_blank');
     }, 1000);
@@ -326,6 +352,9 @@ export const handleResumeCommand = async (terminal: TerminalWriter) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    // Analytics: the CV was downloaded (via the resume/cv terminal command).
+    trackEvent('cv_download', { source: 'terminal' });
 
     await typewriterLine(terminal, '✅ Resume downloaded successfully!', 20);
     await typewriterLine(
