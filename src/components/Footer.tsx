@@ -2,6 +2,7 @@
 
 import { portfolioData } from '@/data';
 import { useResponsive } from '@/hooks';
+import { trackEvent } from '@/utils';
 import { useEffect, useState } from 'react';
 
 const Footer = () => {
@@ -79,6 +80,12 @@ const Footer = () => {
                   href={social.url}
                   target='_blank'
                   rel='noopener noreferrer'
+                  onClick={() =>
+                    trackEvent('outbound_click', {
+                      platform: social.command,
+                      location: 'footer',
+                    })
+                  }
                   className='font-mono text-xs text-green-300 transition-colors duration-200 hover:text-green-400 focus:text-green-400 focus:outline-none sm:text-sm lg:text-base'
                   aria-label={`Visit Yash Suthar's ${social.command} profile`}
                   title={`${social.command} - ${social.url}`}
