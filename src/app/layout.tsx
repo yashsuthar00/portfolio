@@ -1,3 +1,4 @@
+import WebVitalsReporter from '@/components/WebVitalsReporter';
 import { Analytics } from '@vercel/analytics/next';
 import '@xterm/xterm/css/xterm.css';
 import type { Metadata, Viewport } from 'next';
@@ -265,6 +266,7 @@ export default function RootLayout({
                   gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
                     page_title: document.title,
                     page_location: window.location.href,
+                    debug_mode: ${process.env.NODE_ENV !== 'production'},
                   });
                 `,
               }}
@@ -288,6 +290,7 @@ export default function RootLayout({
       >
         {children}
         <Analytics />
+        <WebVitalsReporter />
       </body>
     </html>
   );
