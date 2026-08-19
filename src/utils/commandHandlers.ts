@@ -5,95 +5,129 @@ export interface TerminalWriter {
   clear: () => void;
 }
 
+// ── ANSI palette ──────────────────────────────────────────────────────────
+// Named so intent is obvious at the call site instead of raw escape codes.
+export const ANSI = {
+  reset: '\x1b[0m',
+  dim: '\x1b[38;5;65m', // muted green — secondary / system chatter
+  green: '\x1b[32m', // body text
+  brightGreen: '\x1b[92m', // headings
+  cyan: '\x1b[38;5;51m', // labels / accents
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
+  white: '\x1b[37m',
+} as const;
+
 // Typing state management
 let isTyping = false;
-let scrollTimeout: NodeJS.Timeout | null = null;
+let skipRequested = false;
 
 export const getTypingStatus = (): boolean => isTyping;
 
-// Debounced scroll function to prevent laggy repeated scrolling
-const debouncedScroll = (element: HTMLElement, offset: number = 60) => {
-  if (scrollTimeout) {
-    clearTimeout(scrollTimeout);
-  }
+// A keypress while text is animating fast-forwards the rest of the current
+// command's output. The flag is reset when a new animated block begins.
+export const requestSkip = (): void => {
+  if (isTyping) skipRequested = true;
+};
+export const resetSkip = (): void => {
+  skipRequested = false;
+};
 
-  scrollTimeout = setTimeout(() => {
-    if (element) {
-      element.scrollTo({
-        top: element.scrollHeight - element.clientHeight - offset,
-        behavior: 'smooth',
-      });
-    }
-  }, 100); // Wait 100ms before scrolling
+// Honor the OS "reduce motion" setting: animations collapse to instant output.
+const prefersReducedMotion = (): boolean => {
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+};
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise(resolve => setTimeout(resolve, ms));
+
+// Motion budget: a single line never animates for longer than its budget, no
+// matter how long it is. Short lines type character-by-character (the classic
+// feel); long lines reveal several characters per frame so they land within
+// budget instead of making the reader wait proportional to length.
+const FRAME_MS = 8; // delay between reveal frames
+// Command output is reference material people want to READ, so it streams fast.
+// The welcome is the one "hero" moment, so it gets a slower, characterful pace.
+export const LINE_BUDGET_FAST = 95;
+export const LINE_BUDGET_WELCOME = 320;
+
+// Active per-line budget. Command handlers pass no budget and inherit this;
+// the welcome bumps it up for a moment so the intro reads as deliberate typing.
+let lineBudget = LINE_BUDGET_FAST;
+export const setTypingPace = (pace: 'fast' | 'welcome'): void => {
+  lineBudget = pace === 'welcome' ? LINE_BUDGET_WELCOME : LINE_BUDGET_FAST;
 };
 
 // Typewriter effect utility
 export const typewriterEffect = async (
   terminal: TerminalWriter,
   text: string,
-  speed = 15,
-  color = '\x1b[37m'
+  budgetMs = LINE_BUDGET_FAST,
+  color: string = ANSI.white
 ): Promise<void> => {
-  // Skip delays in test environment
-  if (process.env.NODE_ENV === 'test') {
-    terminal.write(color + text + '\x1b[0m');
+  // Instant output in tests, for reduced-motion users, or when the viewer has
+  // pressed a key to fast-forward the current command.
+  if (
+    process.env.NODE_ENV === 'test' ||
+    prefersReducedMotion() ||
+    skipRequested
+  ) {
+    terminal.write(color + text + ANSI.reset);
     return Promise.resolve();
   }
 
   isTyping = true;
-  let lastScrollTime = 0;
+
+  // Reveal enough characters per frame that the whole line finishes in budget.
+  // xterm keeps the viewport pinned to the bottom on each write, so there is no
+  // manual scrolling here — that used to fight xterm's native scroll and stutter.
+  const frame = FRAME_MS;
+  const maxFrames = Math.max(1, Math.round(budgetMs / frame));
+  const chunk = Math.max(1, Math.ceil(text.length / maxFrames));
 
   return new Promise(resolve => {
     let index = 0;
 
-    const typeChar = () => {
-      if (index < text.length) {
-        terminal.write(color + text[index] + '\x1b[0m');
+    const finish = () => {
+      isTyping = false;
+      resolve();
+    };
 
-        // Only scroll occasionally to prevent lag, and only on newlines or every 10 chars
-        const now = Date.now();
-        if (
-          (text[index] === '\n' || index % 10 === 0) &&
-          now - lastScrollTime > 200
-        ) {
-          lastScrollTime = now;
-          // Try to find the viewport and scroll smoothly
-          const terminalElement = document.querySelector(
-            '.xterm-viewport'
-          ) as HTMLElement;
-          if (terminalElement) {
-            debouncedScroll(terminalElement, 80);
-          }
+    const typeChunk = () => {
+      // Viewer hit a key mid-animation — flush the remainder instantly.
+      if (skipRequested) {
+        if (index < text.length) {
+          terminal.write(color + text.slice(index) + ANSI.reset);
         }
+        finish();
+        return;
+      }
 
-        index++;
-        setTimeout(typeChar, speed);
+      if (index < text.length) {
+        const next = text.slice(index, index + chunk);
+        terminal.write(color + next + ANSI.reset);
+        index += chunk;
+        setTimeout(typeChunk, frame);
       } else {
-        isTyping = false;
-        // Final scroll when typing is complete
-        setTimeout(() => {
-          const terminalElement = document.querySelector(
-            '.xterm-viewport'
-          ) as HTMLElement;
-          if (terminalElement) {
-            debouncedScroll(terminalElement, 80);
-          }
-        }, 100);
-        resolve();
+        finish();
       }
     };
 
-    typeChar();
+    typeChunk();
   });
 };
 
 export const typewriterLine = async (
   terminal: TerminalWriter,
   text: string,
-  speed = 15,
-  color = '\x1b[37m'
+  // Legacy per-call speed hint from the handlers — ignored now that pacing is
+  // governed by the active line budget (see setTypingPace). Kept so the many
+  // existing call sites compile unchanged.
+  _legacySpeed = 0,
+  color: string = ANSI.white
 ): Promise<void> => {
-  await typewriterEffect(terminal, text, speed, color);
+  await typewriterEffect(terminal, text, lineBudget, color);
   terminal.write('\r\n');
 };
 
@@ -121,16 +155,72 @@ export const writeSeparator = (
   writeLine(terminal, char.repeat(length));
 };
 
+// A rule that draws itself in left-to-right — a small motion cue that a new
+// section has started. Collapses to an instant line in tests/reduced-motion.
+export const typeSeparator = async (
+  terminal: TerminalWriter,
+  length = 24,
+  color: string = ANSI.dim
+) => {
+  if (
+    process.env.NODE_ENV === 'test' ||
+    prefersReducedMotion() ||
+    skipRequested
+  ) {
+    writeLine(terminal, '━'.repeat(length), color);
+    return;
+  }
+  isTyping = true;
+  for (let i = 0; i < length; i++) {
+    if (skipRequested) {
+      terminal.write(color + '━'.repeat(length - i) + ANSI.reset);
+      break;
+    }
+    terminal.write(color + '━' + ANSI.reset);
+    await sleep(3);
+  }
+  terminal.write('\r\n');
+  isTyping = false;
+};
+
+// A braille spinner that ticks in place (carriage-return overwrite) to make
+// "work happening" feel deliberate before an action like opening a link.
+const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+export const spinner = async (
+  terminal: TerminalWriter,
+  label: string,
+  durationMs = 700,
+  color: string = ANSI.cyan
+): Promise<void> => {
+  if (process.env.NODE_ENV === 'test' || prefersReducedMotion()) {
+    writeLine(terminal, `${label}`, color);
+    return;
+  }
+  isTyping = true;
+  const start = Date.now();
+  let frame = 0;
+  while (Date.now() - start < durationMs && !skipRequested) {
+    terminal.write(
+      `\r${color}${SPINNER_FRAMES[frame % SPINNER_FRAMES.length]} ${label}${ANSI.reset}`
+    );
+    frame++;
+    await sleep(80);
+  }
+  // Clear the spinner line and leave a settled state.
+  terminal.write(`\r${color}▸ ${label}${ANSI.reset}\r\n`);
+  isTyping = false;
+};
+
 export const handleHelpCommand = async (
   terminal: TerminalWriter,
   isMobile = false
 ) => {
-  await typewriterLine(terminal, 'Available commands:', 15);
-  await typewriterLine(
-    terminal,
-    '  help          - Show this help message',
-    12
-  );
+  await typewriterLine(terminal, 'Available commands:', 15, ANSI.brightGreen);
+  // await typewriterLine(
+  //   terminal,
+  //   '  help          - Show this help message',
+  //   12
+  // );
   await typewriterLine(terminal, '  about         - Learn more about me', 12);
   await typewriterLine(
     terminal,
@@ -194,12 +284,18 @@ export const handleHelpCommand = async (
 };
 
 export const handleAboutCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, `About ${portfolioData.name}:`, 15);
-  writeSeparator(terminal);
+  await typewriterLine(
+    terminal,
+    `About ${portfolioData.name}:`,
+    15,
+    ANSI.brightGreen
+  );
+  await typeSeparator(terminal, 24);
   await typewriterLine(
     terminal,
     `${portfolioData.title} - ${portfolioData.description}`,
-    12
+    12,
+    ANSI.green
   );
   writeLine(terminal, '');
   await typewriterLine(
@@ -220,30 +316,36 @@ export const handleAboutCommand = async (terminal: TerminalWriter) => {
 };
 
 export const handleSkillsCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, 'Technical Skills:', 15);
-  writeSeparator(terminal);
+  await typewriterLine(terminal, 'Technical Skills:', 15, ANSI.brightGreen);
+  await typeSeparator(terminal, 24);
 
   for (const category of portfolioData.skills) {
-    await typewriterLine(terminal, `${category.name}:`, 12);
+    await typewriterLine(terminal, `${category.name}:`, 12, ANSI.cyan);
     for (const skill of category.skills) {
-      await typewriterLine(terminal, `  • ${skill}`, 10);
+      await typewriterLine(terminal, `  • ${skill}`, 10, ANSI.green);
     }
     writeLine(terminal, '');
   }
 };
 
 export const handleProjectsCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, 'Recent Projects:', 15);
-  writeSeparator(terminal);
+  await typewriterLine(terminal, 'Recent Projects:', 15, ANSI.brightGreen);
+  await typeSeparator(terminal, 24);
 
   for (const project of portfolioData.projects) {
-    await typewriterLine(terminal, `🚀 ${project.title}`, 12);
-    await typewriterLine(terminal, `   • ${project.description}`, 10);
+    await typewriterLine(terminal, `🚀 ${project.title}`, 12, ANSI.cyan);
+    await typewriterLine(
+      terminal,
+      `   • ${project.description}`,
+      10,
+      ANSI.green
+    );
     if (project.technologies.length > 0) {
       await typewriterLine(
         terminal,
         `   • Tech: ${project.technologies.join(', ')}`,
-        15
+        15,
+        ANSI.dim
       );
     }
     writeLine(terminal, '');
@@ -251,33 +353,42 @@ export const handleProjectsCommand = async (terminal: TerminalWriter) => {
 };
 
 export const handleContactCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, 'Contact Information:', 15);
-  writeSeparator(terminal, '━', 20);
+  await typewriterLine(terminal, 'Contact Information:', 15, ANSI.brightGreen);
+  await typeSeparator(terminal, 24);
   await typewriterLine(
     terminal,
     `📧 Email:    ${portfolioData.contact.email}`,
-    20
+    20,
+    ANSI.green
   );
   await typewriterLine(
     terminal,
     `📧 Personal: ${portfolioData.contact.personalEmail}`,
-    20
+    20,
+    ANSI.green
   );
   writeLine(terminal, '');
   await typewriterLine(
     terminal,
     'Feel free to reach out for collaborations!',
-    20
+    20,
+    ANSI.cyan
   );
 };
 
 export const handleSocialCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, 'Social Media Commands:', 15);
-  writeSeparator(terminal, '━', 23);
+  await typewriterLine(
+    terminal,
+    'Social Media Commands:',
+    15,
+    ANSI.brightGreen
+  );
+  await typeSeparator(terminal, 24);
   await typewriterLine(
     terminal,
     'Use these commands to quickly access my profiles:',
-    20
+    20,
+    ANSI.green
   );
   writeLine(terminal, '');
 
@@ -303,20 +414,13 @@ export const handleSocialLinkCommand = async (
 ) => {
   const social = portfolioData.social.find(s => s.command === command);
   if (social) {
-    await typewriterLine(
-      terminal,
-      `${social.icon} Opening ${social.name} profile...`,
-      25
-    );
-    setTimeout(() => {
-      window.open(social.url, '_blank');
-    }, 1000);
+    await spinner(terminal, `Opening ${social.name} profile…`, 700);
+    window.open(social.url, '_blank');
   }
 };
 
 export const handleResumeCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, '📄 Downloading resume...', 25);
-  writeSeparator(terminal, '━', 24);
+  await spinner(terminal, '📄 Preparing resume…', 700);
 
   try {
     const link = document.createElement('a');
@@ -327,11 +431,17 @@ export const handleResumeCommand = async (terminal: TerminalWriter) => {
     link.click();
     document.body.removeChild(link);
 
-    await typewriterLine(terminal, '✅ Resume downloaded successfully!', 20);
+    await typewriterLine(
+      terminal,
+      '✅ Resume downloaded successfully!',
+      20,
+      ANSI.brightGreen
+    );
     await typewriterLine(
       terminal,
       '📁 Check your Downloads folder for "Yash_Suthar_Resume.pdf"',
-      20
+      20,
+      ANSI.green
     );
   } catch {
     await typewriterLine(
@@ -344,10 +454,15 @@ export const handleResumeCommand = async (terminal: TerminalWriter) => {
 };
 
 export const handleExperienceCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, 'Work Experience:', 15);
-  writeSeparator(terminal, '━', 16);
+  await typewriterLine(terminal, 'Work Experience:', 15, ANSI.brightGreen);
+  await typeSeparator(terminal, 24);
 
-  await typewriterLine(terminal, '💼 Full Stack Developer (Current)', 20);
+  await typewriterLine(
+    terminal,
+    '💼 Full Stack Developer (Current)',
+    20,
+    ANSI.cyan
+  );
   await typewriterLine(
     terminal,
     '   • Building scalable web applications with React & Node.js',
@@ -365,7 +480,7 @@ export const handleExperienceCommand = async (terminal: TerminalWriter) => {
   );
   writeLine(terminal, '');
 
-  await typewriterLine(terminal, '🚀 Freelance Developer', 20);
+  await typewriterLine(terminal, '🚀 Freelance Developer', 20, ANSI.cyan);
   await typewriterLine(
     terminal,
     '   • Created custom web solutions for various clients',
@@ -380,10 +495,20 @@ export const handleExperienceCommand = async (terminal: TerminalWriter) => {
 };
 
 export const handleEducationCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, 'Educational Background:', 15);
-  writeSeparator(terminal, '━', 23);
+  await typewriterLine(
+    terminal,
+    'Educational Background:',
+    15,
+    ANSI.brightGreen
+  );
+  await typeSeparator(terminal, 24);
 
-  await typewriterLine(terminal, '🎓 Computer Science Engineering', 20);
+  await typewriterLine(
+    terminal,
+    '🎓 Computer Science Engineering',
+    20,
+    ANSI.cyan
+  );
   await typewriterLine(terminal, '   • Focus on Software Development & AI', 18);
   await typewriterLine(
     terminal,
@@ -397,7 +522,12 @@ export const handleEducationCommand = async (terminal: TerminalWriter) => {
   );
   writeLine(terminal, '');
 
-  await typewriterLine(terminal, '📚 Self-Taught Continuous Learning', 20);
+  await typewriterLine(
+    terminal,
+    '📚 Self-Taught Continuous Learning',
+    20,
+    ANSI.cyan
+  );
   await typewriterLine(
     terminal,
     '   • Modern JavaScript frameworks and libraries',
@@ -416,21 +546,31 @@ export const handleEducationCommand = async (terminal: TerminalWriter) => {
 };
 
 export const handleCertificationsCommand = async (terminal: TerminalWriter) => {
-  await typewriterLine(terminal, 'Certifications & Achievements:', 15);
-  writeSeparator(terminal, '━', 30);
+  await typewriterLine(
+    terminal,
+    'Certifications & Achievements:',
+    15,
+    ANSI.brightGreen
+  );
+  await typeSeparator(terminal, 30);
 
-  await typewriterLine(terminal, '🏆 Web Development Certifications', 20);
+  await typewriterLine(
+    terminal,
+    '🏆 Web Development Certifications',
+    20,
+    ANSI.cyan
+  );
   await typewriterLine(terminal, '   • React Advanced Patterns', 18);
   await typewriterLine(terminal, '   • Node.js Backend Development', 18);
   await typewriterLine(terminal, '   • TypeScript Professional', 18);
   writeLine(terminal, '');
 
-  await typewriterLine(terminal, '☁️ Cloud & DevOps', 20);
+  await typewriterLine(terminal, '☁️ Cloud & DevOps', 20, ANSI.cyan);
   await typewriterLine(terminal, '   • AWS Cloud Practitioner', 18);
   await typewriterLine(terminal, '   • Docker & Kubernetes Fundamentals', 18);
   writeLine(terminal, '');
 
-  await typewriterLine(terminal, '🤖 AI/ML Certifications', 20);
+  await typewriterLine(terminal, '🤖 AI/ML Certifications', 20, ANSI.cyan);
   await typewriterLine(terminal, '   • Machine Learning Fundamentals', 18);
   await typewriterLine(terminal, '   • Deep Learning Specialization', 18);
 };
@@ -530,6 +670,8 @@ export const showWelcomeWithTypewriter = async (
   terminal: TerminalWriter,
   isMobile = false
 ): Promise<void> => {
+  resetSkip();
+  setTypingPace('welcome');
   if (isMobile) {
     // Show prompt instantly in blue, then green for welcome
     terminal.write('\x1b[34m[yash@portfolio ~]$ \x1b[32mwelcome\x1b[0m\r\n');
@@ -572,4 +714,6 @@ export const showWelcomeWithTypewriter = async (
     );
     terminal.write('\r\n');
   }
+  // Back to the fast pace for everything the viewer triggers afterwards.
+  setTypingPace('fast');
 };

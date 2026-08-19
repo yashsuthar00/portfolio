@@ -17,7 +17,7 @@ describe('Command Handlers (Async)', () => {
       const result = await executeCommand('help');
 
       expect(result).toContain('Available commands:');
-      expect(result).toContain('help');
+      // 'help' intentionally isn't listed among the commands (you just ran it).
       expect(result).toContain('about');
       expect(result).toContain('skills');
       expect(result).toContain('projects');

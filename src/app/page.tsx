@@ -2,6 +2,7 @@
 
 import ClientOnly from '@/components/ClientOnly';
 import Footer from '@/components/Footer';
+import LoadingScreen from '@/components/LoadingScreen';
 import MatrixRain from '@/components/MatrixRain';
 import Navbar from '@/components/Navbar';
 import TerminalComponent from '@/components/TerminalComponent';
@@ -164,6 +165,11 @@ export default function Home() {
       <footer className='relative z-50 flex-shrink-0' role='contentinfo'>
         <Footer />
       </footer>
+
+      {/* Boot splash overlay — decorative, fades out after a brief minimum so
+          the first paint never flickers. Sits above all content; the semantic
+          DOM beneath stays intact for crawlers. */}
+      <LoadingScreen />
     </div>
   );
 }

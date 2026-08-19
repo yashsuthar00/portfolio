@@ -262,6 +262,24 @@ body::before {
   animation: terminalBlink 1s infinite;
 }
 
+/* Boot splash: green phosphor glow + an indeterminate loading bar. */
+.loading-glow {
+  text-shadow: 0 0 12px rgba(0, 255, 0, 0.45);
+}
+
+@keyframes loadingBar {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+.loading-bar {
+  animation: loadingBar 1.05s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 /* Layout animations */
 .animate-fadeIn {
   animation: fadeIn 0.8s ease-out forwards;
@@ -304,14 +322,17 @@ body::before {
 .xterm .xterm-viewport {
   height: 100% !important;
   max-height: 100% !important;
-  scroll-behavior: smooth;
+  /* Instant scroll: xterm pins to the bottom on write. Smooth scrolling here
+     animated every auto-scroll and stuttered against fast output. */
+  scroll-behavior: auto;
   scroll-padding-bottom: 60px; /* Keep content above footer */
 }
 
 .xterm .xterm-screen {
   height: 100% !important;
   max-height: 100% !important;
-  padding-bottom: 60px; /* Extra space to prevent footer overlap */
+  /* No phantom bottom padding: the grid layout already reserves the footer's
+     row, so this only inflated scrollHeight and forced needless scrolling. */
 }
 
 /* Non-selectable text for UI components */
@@ -342,7 +363,7 @@ body::before {
   .xterm-viewport {
     scrollbar-width: none !important; /* Firefox */
     -ms-overflow-style: none !important; /* IE and Edge */
-    scroll-behavior: smooth !important;
+    scroll-behavior: auto !important;
   }
 
   /* Hide webkit scrollbar on mobile */
@@ -351,16 +372,19 @@ body::before {
     width: 0 !important;
   }
 
-  /* Full screen terminal on mobile */
+  /* Full screen terminal on mobile. Fill the grid's main cell exactly (it is
+     already bounded between the navbar and footer) instead of hardcoding
+     calc(100vh - 70px), which used the large 100vh, ignored the footer, and
+     pushed the terminal's bottom behind the footer — inflating the scroll. */
   .mobile-terminal-fullscreen {
-    height: calc(100vh - 70px) !important; /* Account for navbar only */
-    min-height: calc(100vh - 70px) !important;
-    max-height: calc(100vh - 70px) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
     margin: 0 !important;
     border-radius: 0 !important;
     border: none !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   /* Remove padding from mobile terminal content */
@@ -382,7 +406,7 @@ body::before {
     width: 100% !important;
     max-width: 100% !important;
     overflow-x: hidden !important;
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
 
   .xterm .xterm-screen {
@@ -472,9 +496,9 @@ body::before {
     max-width: 100vw !important;
   }
 
-  /* Smooth scrolling for mobile */
+  /* Instant scroll on mobile too (momentum touch scrolling still applies). */
   .xterm .xterm-viewport {
-    scroll-behavior: smooth !important;
+    scroll-behavior: auto !important;
     -webkit-overflow-scrolling: touch !important;
     scroll-padding-bottom: 80px !important;
   }
@@ -516,5 +540,18 @@ body::before {
   a {
     min-height: 44px;
     min-width: 44px;
+  }
+}
+
+/* Respect the OS "reduce motion" setting: collapse decorative animation.
+   The terminal typewriter/boot honor this in JS; this covers CSS keyframes. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

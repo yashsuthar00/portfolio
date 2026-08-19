@@ -16,10 +16,12 @@ import {
   handleSocialCommand,
   handleSocialLinkCommand,
   handleSudoCommand,
+  requestSkip,
+  resetSkip,
   showWelcomeWithTypewriter,
   TerminalWriter,
 } from '@/utils';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const TerminalComponent = () => {
@@ -32,6 +34,7 @@ const TerminalComponent = () => {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const { isMobile } = useResponsive();
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     setIsMounted(true);
@@ -73,9 +76,20 @@ const TerminalComponent = () => {
     [isMobile]
   );
 
+  // Pin the viewport to the bottom after a write. xterm only auto-sticks when
+  // the viewport is already at the bottom, which isn't guaranteed on mobile
+  // after fit()/resize — so we pin explicitly. scrollToBottom sets scrollTop
+  // directly (instant, ignores CSS scroll-behavior), so output tracks smoothly.
+  const pinToBottom = useCallback(() => {
+    terminal.current?.scrollToBottom();
+  }, []);
+
   const createTerminalWriter = useCallback(
     (): TerminalWriter => ({
-      write: (text: string) => terminal.current?.write(text),
+      write: (text: string) => {
+        terminal.current?.write(text);
+        terminal.current?.scrollToBottom();
+      },
       clear: () => terminal.current?.clear(),
     }),
     []
@@ -91,29 +105,10 @@ const TerminalComponent = () => {
   const showPrompt = useCallback(() => {
     if (!terminal.current) return;
     terminal.current.write('\x1b[34myash@portfolio:~$ \x1b[0m');
+    pinToBottom();
 
-    // Auto-scroll to bottom to ensure content is visible, with padding for footer
     setTimeout(() => {
-      if (terminal.current) {
-        const viewport =
-          terminal.current.element?.querySelector('.xterm-viewport');
-        if (viewport) {
-          // Clear any existing scroll timeout
-          const existingTimeout = (viewport as any).scrollTimeout;
-          if (existingTimeout) {
-            clearTimeout(existingTimeout);
-          }
-
-          // Debounced scroll to prevent lag
-          const offset = isMobile ? 80 : 60;
-          (viewport as any).scrollTimeout = setTimeout(() => {
-            viewport.scrollTo({
-              top: viewport.scrollHeight - viewport.clientHeight - offset,
-              behavior: 'smooth',
-            });
-          }, 100);
-        }
-      }
+      if (!terminal.current) return;
 
       // Intercept paste events and convert Unicode codepoint text to emoji
       terminal.current.attachCustomKeyEventHandler((_e: KeyboardEvent) => {
@@ -139,7 +134,7 @@ const TerminalComponent = () => {
         }
       );
     }, 50);
-  }, [isMobile]);
+  }, [pinToBottom]);
 
   const handleCommand = useCallback(
     async (command: string) => {
@@ -147,6 +142,9 @@ const TerminalComponent = () => {
 
       const cmd = command.trim().toLowerCase();
       const writer = createTerminalWriter();
+
+      // Clear any leftover skip request so this command animates fresh.
+      resetSkip();
 
       switch (cmd) {
         case 'help':
@@ -205,34 +203,9 @@ const TerminalComponent = () => {
           break;
       }
       terminal.current.write('\r\n');
-
-      // Enhanced auto-scroll after command execution, especially for mobile - with debounce
-      setTimeout(
-        () => {
-          if (terminal.current) {
-            const viewport =
-              terminal.current.element?.querySelector('.xterm-viewport');
-            if (viewport) {
-              // Clear any existing scroll timeout to prevent conflicts
-              const existingTimeout = (viewport as any).scrollTimeout;
-              if (existingTimeout) {
-                clearTimeout(existingTimeout);
-              }
-
-              const offset = isMobile ? 80 : 60;
-              (viewport as any).scrollTimeout = setTimeout(() => {
-                viewport.scrollTo({
-                  top: viewport.scrollHeight - viewport.clientHeight - offset,
-                  behavior: 'smooth',
-                });
-              }, 150); // Debounced scroll
-            }
-          }
-        },
-        isMobile ? 300 : 150
-      );
+      pinToBottom();
     },
-    [createTerminalWriter, showPrompt, isMobile]
+    [createTerminalWriter, showPrompt, isMobile, pinToBottom]
   );
 
   useEffect(() => {
@@ -303,8 +276,10 @@ const TerminalComponent = () => {
         terminal.current.onData((data: string) => {
           if (!terminal.current) return;
 
-          // Don't allow input while typing animation is running
+          // While text is animating, a keystroke fast-forwards it to the end
+          // instead of being swallowed — long outputs never feel like a wait.
           if (getTypingStatus()) {
+            requestSkip();
             return;
           }
 
@@ -351,6 +326,7 @@ const TerminalComponent = () => {
             terminal.current.write(
               `\x1b[34myash@portfolio:~$ \x1b[32m${commandBuffer}\x1b[0m\r\n`
             );
+            terminal.current.scrollToBottom();
 
             addToHistory(commandBuffer); // Add to history
             handleCommand(commandBuffer).then(() => {
@@ -378,24 +354,6 @@ const TerminalComponent = () => {
                     }
                   }
                 }, 300);
-              }
-
-              // Enhanced auto-scroll for mobile after command completion
-              if (isMobile) {
-                setTimeout(() => {
-                  if (terminal.current) {
-                    const viewport =
-                      terminal.current.element?.querySelector(
-                        '.xterm-viewport'
-                      );
-                    if (viewport) {
-                      viewport.scrollTo({
-                        top: viewport.scrollHeight - viewport.clientHeight - 80,
-                        behavior: 'smooth',
-                      });
-                    }
-                  }
-                }, 500);
               }
             });
           } else if (data === '\u007f') {
@@ -481,6 +439,23 @@ const TerminalComponent = () => {
         };
 
         window.addEventListener('resize', handleResize);
+        // On mobile, the URL bar showing/hiding changes the visual viewport
+        // without always firing window 'resize' — listen to it directly.
+        window.visualViewport?.addEventListener('resize', handleResize);
+
+        // Re-fit whenever the terminal's own box changes for ANY reason
+        // (dvh shifts, orientation, layout). This keeps xterm's row count equal
+        // to the visible area, so scrolling only appears on genuine overflow —
+        // never from a stale height that includes off-screen space.
+        let rafId = 0;
+        const resizeObserver = new ResizeObserver(() => {
+          cancelAnimationFrame(rafId);
+          rafId = requestAnimationFrame(handleResize);
+        });
+        if (terminalRef.current) {
+          resizeObserver.observe(terminalRef.current);
+        }
+
         // Initial fit with multiple attempts to ensure proper sizing
         setTimeout(handleResize, 100);
         setTimeout(handleResize, 300);
@@ -488,6 +463,9 @@ const TerminalComponent = () => {
 
         return () => {
           window.removeEventListener('resize', handleResize);
+          window.visualViewport?.removeEventListener('resize', handleResize);
+          cancelAnimationFrame(rafId);
+          resizeObserver.disconnect();
           if (terminal.current) {
             terminal.current.dispose();
           }
@@ -542,12 +520,20 @@ const TerminalComponent = () => {
 
   return (
     <motion.div
-      className={`flex h-full w-full flex-col overflow-hidden bg-black ${
+      className={`relative flex h-full w-full flex-col overflow-hidden bg-black ${
         isMobile ? 'mobile-terminal-fullscreen' : ''
       }`}
-      initial={{ opacity: 0, x: isMobile ? 0 : 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 1, delay: isMobile ? 0.2 : 0.4 }}
+      initial={
+        reduceMotion
+          ? { opacity: 1 }
+          : { opacity: 0, scale: 0.985, x: isMobile ? 0 : 40 }
+      }
+      animate={{ opacity: 1, scale: 1, x: 0 }}
+      transition={{
+        duration: reduceMotion ? 0 : 0.7,
+        delay: reduceMotion ? 0 : isMobile ? 0.15 : 0.35,
+        ease: [0.16, 1, 0.3, 1], // easeOutExpo — snaps in, settles gently
+      }}
     >
       {/* Command Bar - Hidden on mobile, fixed at top on desktop */}
       {!isMobile && (
@@ -559,7 +545,18 @@ const TerminalComponent = () => {
             }}
           >
             {/* Desktop: Show all commands */}
-            <div className='flex flex-wrap gap-1'>
+            <motion.div
+              className='flex flex-wrap gap-1'
+              initial='hidden'
+              animate='shown'
+              variants={{
+                shown: {
+                  transition: reduceMotion
+                    ? {}
+                    : { staggerChildren: 0.03, delayChildren: 0.2 },
+                },
+              }}
+            >
               {[
                 'help',
                 'about',
@@ -574,7 +571,15 @@ const TerminalComponent = () => {
                 'cv',
                 'clear',
               ].map((cmd, index, array) => (
-                <span key={cmd}>
+                <motion.span
+                  key={cmd}
+                  variants={{
+                    hidden: reduceMotion
+                      ? { opacity: 1 }
+                      : { opacity: 0, y: -4 },
+                    shown: { opacity: 1, y: 0 },
+                  }}
+                >
                   <button
                     onClick={() => handleCommandClick(cmd)}
                     className='cursor-pointer transition-colors duration-200 hover:text-green-200 focus:text-green-200 focus:outline-none'
@@ -585,9 +590,9 @@ const TerminalComponent = () => {
                   {index < array.length - 1 && (
                     <span className='text-green-500'> | </span>
                   )}
-                </span>
+                </motion.span>
               ))}
-            </div>
+            </motion.div>
           </div>
         </div>
       )}
