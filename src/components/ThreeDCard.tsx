@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
+import { trackEvent } from '@/utils/analytics';
 import {
   Canvas,
   extend,
@@ -199,14 +200,37 @@ function Band(): React.ReactElement {
     }
   });
 
+  // Remembers where/when a drag started, so pointer-up can measure it.
+  const dragStartRef = useRef<{ point: THREE.Vector3; time: number } | null>(
+    null
+  );
+  // Distinguishes "noticed the card once" from repeat play (per pageview).
+  const hasInteractedRef = useRef(false);
+
   // Explicitly type event handlers
   const handlePointerUp = (e: TypedThreeEvent): void => {
     e.target.releasePointerCapture(e.pointerId);
     drag(false);
+
+    // Analytics: measure the drag to tell a real "stretch" from an idle tap.
+    // distance is in 3D world units; the stretch threshold is tunable.
+    const start = dragStartRef.current;
+    dragStartRef.current = null;
+    if (start) {
+      const distance = start.point.distanceTo(e.point);
+      trackEvent('card_interact', {
+        stretched: distance > 0.5,
+        distance: Math.round(distance * 100) / 100,
+        duration_ms: Math.round(performance.now() - start.time),
+        is_first: !hasInteractedRef.current,
+      });
+      hasInteractedRef.current = true;
+    }
   };
 
   const handlePointerDown = (e: TypedThreeEvent): void => {
     e.target.setPointerCapture(e.pointerId);
+    dragStartRef.current = { point: e.point.clone(), time: performance.now() };
     const cardTranslation = new THREE.Vector3(
       card.current!.translation().x,
       card.current!.translation().y,

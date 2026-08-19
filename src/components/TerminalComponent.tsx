@@ -1,9 +1,13 @@
 'use client';
 
+import { portfolioData } from '@/data';
 import { useResponsive } from '@/hooks';
 import { TerminalConfig } from '@/types';
 import {
+  classifyCopiedText,
   getTypingStatus,
+  KNOWN_COMMANDS,
+  sanitizeCommand,
   handleAboutCommand,
   handleCertificationsCommand,
   handleContactCommand,
@@ -20,6 +24,7 @@ import {
   resetSkip,
   showWelcomeWithTypewriter,
   TerminalWriter,
+  trackEvent,
 } from '@/utils';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -35,6 +40,14 @@ const TerminalComponent = () => {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const { isMobile } = useResponsive();
   const reduceMotion = useReducedMotion();
+  // Whether the next command was typed by hand or triggered from the command bar.
+  const commandSourceRef = useRef<'typed' | 'command_bar'>('typed');
+  // First-command detection: "did this visitor engage, and how fast?"
+  const hasRunFirstCommandRef = useRef(false);
+  // Which animation is playing (for the typing_skip event)…
+  const animationContextRef = useRef<'welcome' | 'command_output'>('welcome');
+  // …and whether the current animation's skip was already reported.
+  const skipTrackedRef = useRef(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -146,6 +159,23 @@ const TerminalComponent = () => {
       // Clear any leftover skip request so this command animates fresh.
       resetSkip();
 
+      // Analytics: record which command was run and how it was triggered.
+      // Unknown input is masked by sanitizeCommand (cardinality + PII hygiene);
+      // is_first + seconds_since_load measure how quickly visitors engage.
+      if (cmd) {
+        trackEvent('terminal_command', {
+          ...sanitizeCommand(cmd, KNOWN_COMMANDS),
+          source: commandSourceRef.current,
+          is_first: !hasRunFirstCommandRef.current,
+          seconds_since_load: Math.round(performance.now() / 1000),
+        });
+        hasRunFirstCommandRef.current = true;
+      }
+      commandSourceRef.current = 'typed';
+      // A new command starts a new output animation — allow one skip report.
+      animationContextRef.current = 'command_output';
+      skipTrackedRef.current = false;
+
       switch (cmd) {
         case 'help':
           await handleHelpCommand(writer, isMobile);
@@ -252,6 +282,9 @@ const TerminalComponent = () => {
           if (terminal.current) {
             terminal.current.clear();
             await showWelcomeMessage();
+            // Welcome finished — later animations belong to command output.
+            animationContextRef.current = 'command_output';
+            skipTrackedRef.current = false;
             showPrompt();
             terminal.current.focus();
           }
@@ -270,6 +303,7 @@ const TerminalComponent = () => {
 
           // Write new command
           commandBuffer = command;
+          commandSourceRef.current = 'command_bar';
           terminal.current.write('\x1b[32m' + command + '\x1b[0m');
         };
 
@@ -279,6 +313,13 @@ const TerminalComponent = () => {
           // While text is animating, a keystroke fast-forwards it to the end
           // instead of being swallowed — long outputs never feel like a wait.
           if (getTypingStatus()) {
+            // Analytics: impatience signal — once per animation, not per key.
+            if (!skipTrackedRef.current) {
+              skipTrackedRef.current = true;
+              trackEvent('typing_skip', {
+                during: animationContextRef.current,
+              });
+            }
             requestSkip();
             return;
           }
@@ -385,6 +426,8 @@ const TerminalComponent = () => {
                 );
                 commandBuffer = historicalCommand;
                 setHistoryIndex(newIndex);
+                // Analytics: power-user signal — history is being reused.
+                trackEvent('history_nav', { direction: 'up' });
               }
             }
           } else if (data === '\x1b[B') {
@@ -414,12 +457,15 @@ const TerminalComponent = () => {
                 );
                 commandBuffer = historicalCommand;
                 setHistoryIndex(newIndex);
+                // Analytics: power-user signal — history is being reused.
+                trackEvent('history_nav', { direction: 'down' });
               }
             }
           } else if (data >= ' ') {
             // Printable characters
             terminal.current.write('\x1b[32m' + data + '\x1b[0m');
             commandBuffer += data;
+            commandSourceRef.current = 'typed';
           }
         });
 
@@ -443,6 +489,24 @@ const TerminalComponent = () => {
         // without always firing window 'resize' — listen to it directly.
         window.visualViewport?.addEventListener('resize', handleResize);
 
+        // Analytics: copying an email from the terminal output is the
+        // strongest "contact intent" signal this site has. Only the address
+        // *kind* is reported (work/personal/other) — never the text itself.
+        const handleCopy = () => {
+          let selection = '';
+          try {
+            selection = terminal.current?.getSelection?.() || '';
+          } catch {
+            return; // terminal already disposed — nothing to report
+          }
+          if (!selection) return;
+          const address = classifyCopiedText(selection, portfolioData.contact);
+          if (address) {
+            trackEvent('email_copy', { address });
+          }
+        };
+        document.addEventListener('copy', handleCopy);
+
         // Re-fit whenever the terminal's own box changes for ANY reason
         // (dvh shifts, orientation, layout). This keeps xterm's row count equal
         // to the visible area, so scrolling only appears on genuine overflow —
@@ -464,6 +528,7 @@ const TerminalComponent = () => {
         return () => {
           window.removeEventListener('resize', handleResize);
           window.visualViewport?.removeEventListener('resize', handleResize);
+          document.removeEventListener('copy', handleCopy);
           cancelAnimationFrame(rafId);
           resizeObserver.disconnect();
           if (terminal.current) {
